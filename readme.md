@@ -6,7 +6,7 @@
 ## Steps
 
 1. Create a config.json file
-2. Fill it with the following (enter correct data)
+2. Fill it with the following (Change "enable_twitter_sales" to `false` to disable the twitter sales functionality)
 ```json
 {
   "token": "DISCORD_BOT_TOKEN_HERE",
@@ -19,6 +19,7 @@
   "sales_cooldown": "100000",
   "discord_sales_channel": "SALES_DISCORD_CHANNEL_ID_HERE",
   "discord_general_chat": "DISCORD_GENERAL_CHAT_CHANNEL_ID_HERE",
+  "enable_twitter_sales": true,
   "twitter_api_key": "TWITTER_API_KEY_HERE",
   "twitter_api_secret": "TWITTER_API_SECRET_HERE",
   "twitter_access_token": "TWITTER_ACCESS_TOKEN_HERE",

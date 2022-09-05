@@ -1,7 +1,7 @@
 const Discord = require('discord.js');
 const fetch = require('node-fetch');
 const ethers = require('ethers');
-const { sales_cooldown, discord_sales_channel, discord_general_chat, contract_address, os_api_key } = require('../config.json');
+const { sales_cooldown, discord_sales_channel, discord_general_chat, contract_address, os_api_key, enable_twitter_sales } = require('../config.json');
 const twitter = require("./twitter");
 
 module.exports = {
@@ -82,7 +82,25 @@ module.exports = {
                                 tweetAlert = `${tokenName} has been sold for ${parseFloat(usdPrice).toFixed(2)}$.\n\nBuyer: ${winner}\nSeller: ${seller} \n\n${saleURL}`;
                             }
 
-                            let tweet = await twitter.tweetSale(tweetAlert);
+                            let fields = [{
+                                    name: 'Buyer',
+                                    value: '[' + winner + '](https://etherscan.io/address/' + sale.to + ')',
+                                    inline: true
+                                },
+                                {
+                                    name: 'Seller',
+                                    value: '[' + seller + '](https://etherscan.io/address/' + sale.from + ')',
+                                    inline: true
+                                }];
+
+                            if (enable_twitter_sales) {
+                                let tweet = await twitter.tweetSale(tweetAlert);
+                                fields.push({
+                                    name: `Raid the tweet`,
+                                    value: `Click [here](${tweet})`,
+                                    inline: false
+                                });
+                            }
 
                             let item = new Discord.MessageEmbed()
                                 .setColor('RANDOM')
@@ -90,21 +108,7 @@ module.exports = {
                                 .setDescription(alert)
                                 .setThumbnail(image)
                                 .addFields(
-                                    {
-                                        name: 'Buyer',
-                                        value: '[' + winner + '](https://etherscan.io/address/' + sale.to + ')',
-                                        inline: true
-                                    },
-                                    {
-                                        name: 'Seller',
-                                        value: '[' + seller + '](https://etherscan.io/address/' + sale.from + ')',
-                                        inline: true
-                                    },
-                                    {
-                                        name: `Raid the tweet`,
-                                        value: `Click [here](${tweet})`,
-                                        inline: false
-                                    }
+                                    fields
                                 )
                                 .setFooter({text: `${marketplace} Sale`})
 

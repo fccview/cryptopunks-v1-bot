@@ -1,7 +1,7 @@
 {
-  "name": "sample-bot",
+  "name": "cryptopunks-v1-bot",
   "version": "1.0.0",
-  "description": "Discord bot with sample web3 functionalities",
+  "description": "Official discord/twitter bot for the Cryptopunks v1 community",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
