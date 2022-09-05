@@ -24,7 +24,7 @@ client.once('ready', () => {
     const timer = 28800000;
 
     setInterval(function () {
-        // sales.allSales(client);
+        sales.allSales(client);
     }, sales_cooldown);
 
     setInterval(function () {
