@@ -20,7 +20,7 @@ module.exports = {
      */
     allSales: function (client) {
         let seconds = sales_cooldown ? parseInt(sales_cooldown) / 1000 : 3600;
-        let hoursAgo = (Math.round(new Date(`2022-09-05T04:14:54Z`).getTime() / 1000) - (seconds));
+        let hoursAgo = (Math.round(new Date().getTime() / 1000) - (seconds));
         let self = this;
 
         let options = {
