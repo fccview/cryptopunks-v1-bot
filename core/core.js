@@ -1,3 +1,5 @@
+const Discord = require('discord.js');
+
 module.exports = {
     /**
      *
@@ -31,7 +33,7 @@ module.exports = {
      */
     safetyProtocol: function(client, channel) {
         let item = new Discord.MessageEmbed()
-            .setColor(this.randomColor())
+            .setColor('RANDOM')
             .setTitle("V1 CryptoPunks Safety Protocol")
             .setDescription("A scammer is going around impersonating staff members begging for some ETH to help with a transaction!\n\n" +
                 "<a:chartgreen:931902465413120011> **IT'S NOT US**\n\n" +
