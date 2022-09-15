@@ -37,8 +37,11 @@ module.exports = {
                         let alert = '';
                         let tweetAlert = '';
                         let wen = Math.round(new Date(sale['date']).getTime() / 1000);
+                        console.log(`sale try ${wen}`);
 
                         if (wen >= hoursAgo) {
+                            console.log(`sale trigger ${wen}`)
+                            let discordTime = `<t:${wen}:R>`;
                             let tokenID = sale.nft.type.tokenId;
                             let tokenName = `V1 PUNK #${tokenID}`;
                             let price = parseFloat(sale.payment.value).toFixed(2);
@@ -73,12 +76,12 @@ module.exports = {
 
                             if (currency === 'ETH' || sale.payment.type.contract === 'ETHEREUM:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2') {
                                 currency = `${ethers.constants.EtherSymbol}`;
-                                alert = `Has been sold for ${price}${currency} (${parseFloat(usdPrice).toFixed(2)}). \n Check it out [here](${saleURL})`;
+                                alert = `Has been sold ${discordTime} for ${price}${currency} (${parseFloat(usdPrice).toFixed(2)}). \n Check it out [here](${saleURL})`;
                                 tweetAlert = `${tokenName} has been sold for ${price}${currency} (${parseFloat(usdPrice).toFixed(2)}).\n\nBuyer: ${winner}\nSeller: ${seller} \n\n${saleURL}`;
                             } else {
                                 currency = '$';
                                 price = usdPrice;
-                                alert = `Has been sold for ${parseFloat(usdPrice).toFixed(2)}$. \n Check it out [here](${saleURL})`;
+                                alert = `Has been sold ${discordTime} for ${parseFloat(usdPrice).toFixed(2)}$. \n Check it out [here](${saleURL})`;
                                 tweetAlert = `${tokenName} has been sold for ${parseFloat(usdPrice).toFixed(2)}$.\n\nBuyer: ${winner}\nSeller: ${seller} \n\n${saleURL}`;
                             }
 
