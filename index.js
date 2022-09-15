@@ -23,9 +23,8 @@ client.once('ready', () => {
     client.user.setPresence({ activities: [{ name: `Type /help`, type: `PLAYING` }] });
     const timer = 28800000;
 
-    sales.allSales(client);
     setInterval(function () {
-        // sales.allSales(client);
+        sales.allSales(client);
     }, sales_cooldown);
 
     setInterval(function () {
