@@ -242,7 +242,6 @@ function getEthToFiat() {
     }),
     // tap((res) => console.log(res)),
     catchError((err) => {
-      console.log(err);
       return of({ error: true });
     })
   );
