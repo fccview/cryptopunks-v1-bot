@@ -143,7 +143,6 @@ module.exports = {
         let tweet = { status: tweetText };
         if (media_ids) tweet.media_ids = media_ids;
 
-        //console.log(tweet)
         twitterClient.post("statuses/update", tweet, (error) => {
           if (!error) console.log(`Successfully tweeted: ${tweetText}`);
           else console.error(error);
