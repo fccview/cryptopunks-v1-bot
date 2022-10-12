@@ -3,7 +3,7 @@ const { Client, Collection, Intents } = require('discord.js');
 const { token } = require('./config.json');
 const core = require('./core/core');
 const txService = require("./core/twitter/txService");
-const { sales_cooldown, discord_general_chat } = require('./config.json');
+const { discord_general_chat } = require('./config.json');
 
 const client = new Client({
     partials: ['MESSAGE', 'CHANNEL', 'REACTION'],
@@ -24,10 +24,6 @@ client.once('ready', () => {
     const timer = 28800000;
 
     txService.watchForSales(client)
-
-    // setInterval(function () {
-    //     sales.allSales(client);
-    // }, sales_cooldown);
 
     setInterval(function () {
         core.safetyProtocol(client, discord_general_chat);

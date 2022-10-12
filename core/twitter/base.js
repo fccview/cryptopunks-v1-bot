@@ -1,14 +1,24 @@
-var fs = require('fs')
-var http = require('axios')
-var currency = require('currency.js')
-var Jimp = require('jimp')
-var { Network, Alchemy } = require("alchemy-sdk")
-var ethers = require("ethers")
-var twit = require("twit")
-var { Observable, catchError, firstValueFrom, map, of, switchMap, timer } = require('rxjs')
+var fs = require("fs");
+var http = require("axios");
+var currency = require("currency.js");
+var Discord = require('discord.js');
+var Jimp = require("jimp");
+var { Network, Alchemy } = require("alchemy-sdk");
+var ethers = require("ethers");
+var twit = require("twit");
 
-var config = require("../../config.json")
-var fiatSymbols = require('./fiat-symobols.json')
+var {
+  Observable,
+  catchError,
+  firstValueFrom,
+  map,
+  of,
+  switchMap,
+  timer,
+} = require("rxjs");
+
+var config = require("../../config.json");
+var fiatSymbols = require("./fiat-symobols.json");
 
 const settings = {
   apiKey: config.alchemy_api_key, // Replace with your Alchemy API Key.
@@ -33,14 +43,16 @@ const twitterConfig = {
 
 const twitterClient = new twit(twitterConfig);
 
-var fiatValues
+var fiatValues;
 
 module.exports = {
   init() {
     getEthToFiat().subscribe((fiat) => {
-      if (fiat.error) { return }
-      fiatValues = fiat.ethereum
-    })
+      if (fiat.error) {
+        return;
+      }
+      fiatValues = fiat.ethereum;
+    });
   },
 
   getWeb3Provider() {
@@ -71,60 +83,14 @@ module.exports = {
 
   async tweet(data, client) {
     if (config.enable_twitter_sales == false) {
-      console.log("Twitter sales are turned off. Ignoring tweet.")
-      return
-    }
-
-    let tweetText =
-      data.type === "SALE" ? config.saleMessage : config.bidMessage; // Right now this is useless as bids arent a thing...
-
-    // Cash value
-    const fiatValue = data.usdcValue
-      ? data.usdcValue
-      : fiatValues[config.currency] *
-        (data.alternateValue ? data.alternateValue : data.ether);
-    const fiat = currency(fiatValue, {
-      symbol: fiatSymbols[config.currency].symbol,
-      precision: 0,
-    });
-
-    const ethValue = data.alternateValue ? data.alternateValue : data.ether;
-    const eth = currency(ethValue, { symbol: "Ξ", precision: 3 });
-
-    if (ethValue <= 0.01 && data.usdcValue == 0) {
+      console.log("Twitter sales are turned off. Ignoring tweet.");
       return;
     }
 
-    // Replace tokens from config file
-    tweetText = tweetText.replace(new RegExp("<tokenId>", "g"), data.tokenId);
-    if (ethValue) {
-      tweetText = tweetText.replace(
-        new RegExp("<ethPrice>", "g"),
-        eth.format() + " "
-      );
-    } else {
-      tweetText = tweetText.replace(new RegExp("<ethPrice>", "g"), "");
-    }
-    tweetText = tweetText.replace(
-      new RegExp("<txHash>", "g"),
-      data.transactionHash
-    );
-    tweetText = tweetText.replace(new RegExp("<from>", "g"), data.from);
-    tweetText = tweetText.replace(new RegExp("<to>", "g"), data.to);
-    tweetText = tweetText.replace(
-      new RegExp("<fiatPrice>", "g"),
-      fiat.format()
-    );
-    tweetText = tweetText.replace(
-      new RegExp("<marketplace>", "g"),
-      data.marketplace
-    );
+    let tweetText = createTweetText(data);
 
     // Format our image to base64
-
-    const image = config.use_local_images
-      ? data.imageUrl
-      : transformImage(data.imageUrl);
+    const image = transformImage(data.imageUrl);
 
     var processedImage;
     if (image) processedImage = await getBase64(image);
@@ -182,24 +148,75 @@ module.exports = {
           if (!error) console.log(`Successfully tweeted: ${tweetText}`);
           else console.error(error);
         });
+
+        
       } catch (err) {
         console.error(err);
       }
     }
-  }
+
+    sendSaleToDiscord(client, data);
+  },
+};
+
+function sendSaleToDiscord(client, sale) {
+  var tweetText = createTweetText(sale, true)
+  let fields = [
+    {
+      name: "Buyer",
+      value:
+        "[" + sale.to + "](https://etherscan.io/address/" + sale.longTo + ")",
+      inline: true,
+    },
+    {
+      name: "‍", // THERE IS A ZWJ in between these quotes... 
+      value: "🤝",
+      inline: true,
+    },
+    {
+      name: "Seller",
+      value:
+        "[" +
+        sale.from +
+        "](https://etherscan.io/address/" +
+        sale.longFrom +
+        ")",
+      inline: true,
+    },
+  ];
+  let item = new Discord.MessageEmbed()
+    .setColor("RANDOM")
+    .setTitle(`V1 PUNK #${sale.tokenId}`)
+    .setDescription(tweetText)
+    .setThumbnail(transformImage(sale.imageUrl))
+    .addFields(fields)
+    .setFooter({ text: `${sale.marketplace} Sale` });
+
+  client.channels.cache
+    .get(config.discord_sales_channel)
+    .send({ embeds: [item] });
+  /**
+   * Send to General Chat
+   */
+  client.channels.cache
+    .get(config.discord_general_chat)
+    .send({ embeds: [item] });
 }
+
 function transformRequest(url, parms) {
   return new Observable(function (observer) {
-    http.get(url, parms)
-    .then(function (response) {
-      observer.next(response);
-      observer.complete();
-    })
-    .catch(function (error) {
-      observer.error(error)
-    })
-  })
+    http
+      .get(url, parms)
+      .then(function (response) {
+        observer.next(response);
+        observer.complete();
+      })
+      .catch(function (error) {
+        observer.error(error);
+      });
+  });
 }
+
 async function getBase64(url) {
   if (url.startsWith("http")) {
     return await firstValueFrom(
@@ -247,4 +264,49 @@ function toLowerKeys(obj) {
     accumulator[key.toLowerCase()] = obj[key];
     return accumulator;
   }, {});
+}
+
+function createTweetText(data, isDiscord) {
+  var isDiscord = isDiscord ? true : false
+  let tweetText = isDiscord ? config.discordSaleMessage : (data.type === "SALE" ? config.saleMessage : config.bidMessage); // Right now this is useless as bids arent a thing...
+
+  // Cash value
+  const fiatValue = data.usdcValue
+    ? data.usdcValue
+    : fiatValues[config.currency] *
+      (data.alternateValue ? data.alternateValue : data.ether);
+  const fiat = currency(fiatValue, {
+    symbol: fiatSymbols[config.currency].symbol,
+    precision: 0,
+  });
+
+  const ethValue = data.alternateValue ? data.alternateValue : data.ether;
+  const eth = currency(ethValue, { symbol: "Ξ", precision: 3 });
+
+  if (ethValue <= 0.01 && data.usdcValue == 0) {
+    // this kills the tweet process
+    return;
+  }
+
+  tweetText = tweetText.replace(new RegExp("<tokenId>", "g"), data.tokenId);
+  if (ethValue) {
+    tweetText = tweetText.replace(
+      new RegExp("<ethPrice>", "g"),
+      eth.format() + " "
+    );
+  } else {
+    tweetText = tweetText.replace(new RegExp("<ethPrice>", "g"), "");
+  }
+  tweetText = tweetText.replace(
+    new RegExp("<txHash>", "g"),
+    data.transactionHash
+  );
+  tweetText = tweetText.replace(new RegExp("<from>", "g"), data.from);
+  tweetText = tweetText.replace(new RegExp("<to>", "g"), data.to);
+  tweetText = tweetText.replace(new RegExp("<fiatPrice>", "g"), fiat.format());
+  tweetText = tweetText.replace(
+    new RegExp("<marketplace>", "g"),
+    data.marketplace
+  );
+  return tweetText;
 }

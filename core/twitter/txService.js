@@ -14,29 +14,55 @@ const looksRareContractAddress = '0x59728544b08ab483533076417fbbb2fd0b17ce3a'; /
 const looksInterface = new ethers.utils.Interface(looksRareABI);
 const nftxInterface = new ethers.utils.Interface(nftxABI);
 const seaportInterface = new ethers.utils.Interface(openseaSeaportABI);
+const topics = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 
 var provider = base.getWeb3Provider()
+
+var x2y2SalesQueue = []
+function addToSalesQueue(sale, client) {
+  var x2y2Weirdaddress = "0x2C45Af926d5f62C5935278106800a03eB565778E".toLowerCase()
+  var weirdTo = sale.longTo == x2y2Weirdaddress
+  if(weirdTo || sale.longFrom == x2y2Weirdaddress) { // fix x2y2 single purchase weirdness...
+    if(x2y2SalesQueue.length == 1) {
+      if(weirdTo) {
+        sale.to = x2y2SalesQueue[0].to
+      } else {
+        sale.from = x2y2SalesQueue[0].from
+      }
+      // we need to reset since we are allowing the sale to go through.
+      x2y2SalesQueue = []
+    } else {
+      // we need to wait since this shit takes the NFT then gives it away so we use a buffer to fix.
+      x2y2SalesQueue.push(sale)
+      return
+    }
+  }
+
+  //console.log(sale)
+  base.tweet(sale, client)
+}
 
 module.exports = {
     watchForSales(client) {
         base.init()
-        // base.getAlchemy().ws.on({ address: config.contract_address, topics: [topics] },
-        //     (event) => {
-        //       getTransactionDetails(event).then((res) => {
-        //         if (!res) return
-        //         if (res?.ether || res?.alternateValue || res?.usdcValue) {
-        //             base.tweet(res, client)
-        //         }
-        //       })
-        //     }
-        // )
+
+        base.getAlchemy().ws.on({ address: config.contract_address, topics: [topics] },
+            (event) => {
+              getTransactionDetails(event).then((res) => {
+                if (!res) return
+                if (res?.ether || res?.alternateValue || res?.usdcValue) {
+                    addToSalesQueue(res, client)
+                }
+              })
+            }
+        )
 
         // this code snippet can be useful to test a specific transaction
-        // Just comment out the return statement and comment out the above ws listening
-        //return
+        // Just comment out the return statement and comment out line 42
+        return
         const tokenContract = new ethers.Contract(config.contract_address, erc721abi, provider);
         let filter = tokenContract.filters.Transfer();
-        const startingBlock = 15728078
+        const startingBlock = 15717503 
         const endingBlock = startingBlock + 1
         tokenContract.queryFilter(filter,
         startingBlock,
@@ -45,11 +71,10 @@ module.exports = {
         console.log("Processing events...")
         for (const event of events) {
             getTransactionDetails(event).then((res) => {
-            if (!res) return
-            console.log(res)
-            if (res?.ether || res?.alternateValue || res?.usdcValue) {
-              base.tweet(res, client)
-            }
+              if (!res) return
+              if (res?.ether || res?.alternateValue || res?.usdcValue) {
+                addToSalesQueue(res, client)
+              }
             });
         }
         });
@@ -105,9 +130,7 @@ async function getTransactionDetails(tx) {
     const receipt = await provider.getTransactionReceipt(transactionHash);
 
     // Get token image
-    const imageUrl = config.use_local_images
-      ? `${config.local_image_path}${tokenId.padStart(4, '0')}.png`
-      : await base.getTokenMetadata(tokenId);
+    const imageUrl = await base.getTokenMetadata(tokenId);
 
     // Check if LooksRare & parse the event & get the value
     let alternateValue = 0;
@@ -316,7 +339,9 @@ async function getTransactionDetails(tx) {
       transactionHash,
       alternateValue,
       usdcValue,
-      type: "SALE"
+      type: "SALE",
+      longTo: transaction.to.toLowerCase(),
+      longFrom: transaction.from.toLowerCase()
     };
 
     // If the image was successfully obtained

@@ -18,14 +18,18 @@ etherscan_api_key is optional
   "guildId": "DISCORD_SERVER_GUILD_ID_HERE",
   "os_api_key": "OS_API_KEY_HERE",
   "etherscan_api_key": "ETHERSCAN_API_KEY_HERE",
-  "sales_cooldown": "100000",
   "discord_sales_channel": "SALES_DISCORD_CHANNEL_ID_HERE",
   "discord_general_chat": "DISCORD_GENERAL_CHAT_CHANNEL_ID_HERE",
+  "alchemy_api_key": "ALCHEMY_API_KEY_HERE",
   "enable_twitter_sales": true,
   "twitter_api_key": "TWITTER_API_KEY_HERE",
   "twitter_api_secret": "TWITTER_API_SECRET_HERE",
   "twitter_access_token": "TWITTER_ACCESS_TOKEN_HERE",
-  "twitter_access_token_secret": "TWITTER_ACCESS_TOKEN_SECRET_HERE"
+  "twitter_access_token_secret": "TWITTER_ACCESS_TOKEN_SECRET_HERE",
+  "currency": "usd",
+  "saleMessage": "CryptoPunk V1 #<tokenId> was bought for <ethPrice>💵 (<fiatPrice>)\n\nBUYER: <to>\n🤝\nSELLER: <from>\n\n🛒 MARKETPLACE: <marketplace>\n\n➡️  https://v1punks.io/token/ETHEREUM:0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d:<tokenId>\n\n➡️  https://etherscan.io/tx/<txHash>\n\n",
+  "discordSaleMessage": "Has been bought for <ethPrice> (<fiatPrice>)\n\n[v1punks.io](https://v1punks.io/token/ETHEREUM:0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d:<tokenId>)\n\n[Etherscan](https://etherscan.io/tx/<txHash>)\n\n\n",
+  "ens": true
 }
 ```
 3. Initialize the project (`npm install`)
