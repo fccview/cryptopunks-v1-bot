@@ -2,8 +2,8 @@ const fs = require('node:fs');
 const { Client, Collection, Intents } = require('discord.js');
 const { token } = require('./config.json');
 const core = require('./core/core');
-const sales = require("./core/all-sales");
-const { sales_cooldown, discord_general_chat } = require('./config.json');
+const txService = require("./core/twitter/txService");
+const { discord_general_chat } = require('./config.json');
 
 const client = new Client({
     partials: ['MESSAGE', 'CHANNEL', 'REACTION'],
@@ -23,42 +23,11 @@ client.once('ready', () => {
     client.user.setPresence({ activities: [{ name: `Type /help`, type: `PLAYING` }] });
     const timer = 28800000;
 
-    setInterval(function () {
-        sales.allSales(client);
-    }, sales_cooldown);
+    txService.watchForSales(client)
 
     setInterval(function () {
         core.safetyProtocol(client, discord_general_chat);
     }, timer);
-});
-
-client.on("messageCreate", async message => {
-    "use strict";
-
-    let allowed = false,
-        commandPrefix = '';
-
-    if (message.content.toLowerCase().includes('!')) {
-        commandPrefix = '!';
-        allowed = true;
-    } else if (message.content.toLowerCase().includes('-')) {
-        commandPrefix = '-';
-        allowed = true;
-    }
-
-    let args = message.content.slice(commandPrefix.length).trim().split(/ +/g);
-
-    //Declares Command variables
-    let command = message.content.toLowerCase();
-    const commandWithArgs = args.shift().toLowerCase();
-
-    command = command.slice(commandPrefix.length).toLowerCase();
-
-    if (allowed === true && message.content.toLowerCase().startsWith(commandPrefix)) {
-        /**
-         * TEXT COMMANDS WILL GO HERE
-         */
-    }
 });
 
 client.on('interactionCreate', async interaction => {
@@ -86,6 +55,7 @@ process.on("uncaughtExceptionMonitor", async (err) => {
     console.error("Uncaught Promise Exception (Monitor):\n", err);
 });
 process.on("multipleResolves", async (type, promise, reason) => {
+    if(type === "reject" && await promise === '1') { return } // timeout from alchemy sdk just ignore
     console.error("Multiple Resolves:\n", type, promise, reason);
 });
 

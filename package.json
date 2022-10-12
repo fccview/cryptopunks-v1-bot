@@ -9,6 +9,8 @@
   "author": "fccview",
   "license": "ISC",
   "dependencies": {
+    "alchemy-sdk": "^2.1.1",
+    "currency.js": "^2.0.4",
     "@discordjs/builders": "^0.13.0",
     "@discordjs/rest": "^0.4.1",
     "canvas": "^2.9.1",
@@ -18,10 +20,9 @@
     "fetch": "^1.1.0",
     "hastebin-gen": "^2.0.5",
     "jimp": "^0.16.1",
-    "jimpfont": "^0.0.6",
     "merge-images": "^2.0.0",
-    "mongojs": "^3.1.0",
-    "nanoid": "^4.0.0",
-    "twitter-api-client": "^1.5.2"
+    "twit": "^2.2.11",
+    "rxjs": "^7.5.7",
+    "web3-utils": "^1.8.0"
   }
 }
