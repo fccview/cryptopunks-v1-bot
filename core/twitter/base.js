@@ -87,7 +87,9 @@ module.exports = {
       return;
     }
 
-    let tweetText = createTweetText(data);
+    var ethValue = data.alternateValue ? data.alternateValue : data.ether;
+    var eth = currency(ethValue, { symbol: "Ξ", precision: 3 });
+    let tweetText = createTweetText(data, ethValue);
 
     // Format our image to base64
     const image = transformImage(data.imageUrl);
@@ -159,7 +161,8 @@ module.exports = {
 };
 
 function sendSaleToDiscord(client, sale) {
-  var tweetText = createTweetText(sale, true)
+  var ethValue = sale.alternateValue ? sale.alternateValue : sale.ether;
+  var tweetText = createTweetText(sale, ethValue, true)
   let fields = [
     {
       name: "Buyer",
@@ -264,22 +267,21 @@ function toLowerKeys(obj) {
   }, {});
 }
 
-function createTweetText(data, isDiscord) {
+function createTweetText(data, ethValue, isDiscord) {
   var isDiscord = isDiscord ? true : false
   let tweetText = isDiscord ? config.discordSaleMessage : (data.type === "SALE" ? config.saleMessage : config.bidMessage); // Right now this is useless as bids arent a thing...
 
   // Cash value
-  const fiatValue = data.usdcValue
+  var fiatValue = data.usdcValue
     ? data.usdcValue
     : fiatValues[config.currency] *
       (data.alternateValue ? data.alternateValue : data.ether);
-  const fiat = currency(fiatValue, {
+  var fiat = currency(fiatValue, {
     symbol: fiatSymbols[config.currency].symbol,
     precision: 0,
   });
 
-  const ethValue = data.alternateValue ? data.alternateValue : data.ether;
-  const eth = currency(ethValue, { symbol: "Ξ", precision: 3 });
+  var eth = currency(ethValue, { symbol: "Ξ", precision: 3 });
 
   if (ethValue <= 0.01 && data.usdcValue == 0) {
     // this kills the tweet process

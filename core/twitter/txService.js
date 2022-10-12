@@ -62,7 +62,7 @@ module.exports = {
         return
         const tokenContract = new ethers.Contract(config.contract_address, erc721abi, provider);
         let filter = tokenContract.filters.Transfer();
-        const startingBlock = 15717503 
+        const startingBlock = 15730764 
         const endingBlock = startingBlock + 1
         tokenContract.queryFilter(filter,
         startingBlock,
