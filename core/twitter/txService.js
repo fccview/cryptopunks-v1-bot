@@ -120,7 +120,7 @@ async function getTransactionDetails(tx) {
     if (transaction.to.toLowerCase() === "0x9757F2d2b135150BBeb65308D4a91804107cd8D6".toLowerCase()) {
       foundMarketPlace = "Rarible"
     } else if (transaction.to.toLowerCase() === "0xDef1C0ded9bec7F1a1670819833240f027b25EfF".toLowerCase()) {
-      foundMarketPlace = "0x"
+      foundMarketPlace = "atomic0"
     } else if (transaction.to.toLowerCase() === "0x2b2e8cda09bba9660dca5cb6233787738ad68329".toLowerCase()) {
       foundMarketPlace = "SudoSwap"
     }else if(isX2Y2Exchange) {
