@@ -71,7 +71,6 @@ module.exports = {
             for (let i = 0; i < event.length; i++) {
                 if (event[i].hasOwnProperty('args')) {
                     if (parseInt(event[i].args['punkIndex']) === parseInt(punk)) {
-                        console.log(event[i]);
                         let toAddress = event[i].args['to'];
                         let txHash = "https://etherscan.io/tx/"+event[i].transactionHash;
                         usercard = new Discord.MessageEmbed()

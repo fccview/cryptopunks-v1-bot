@@ -1,13 +1,13 @@
-var fs = require("fs");
-var http = require("axios");
-var currency = require("currency.js");
-var Discord = require('discord.js');
-var Jimp = require("jimp");
-var { Network, Alchemy } = require("alchemy-sdk");
-var ethers = require("ethers");
-var twit = require("twit");
+let fs = require("fs");
+let http = require("axios");
+let currency = require("currency.js");
+let Discord = require('discord.js');
+let Jimp = require("jimp");
+let { Network, Alchemy } = require("alchemy-sdk");
+let ethers = require("ethers");
+let twit = require("twit");
 
-var {
+let {
   Observable,
   catchError,
   firstValueFrom,
@@ -17,8 +17,8 @@ var {
   timer,
 } = require("rxjs");
 
-var config = require("../../config.json");
-var fiatSymbols = require("./fiat-symobols.json");
+let config = require("../../config.json");
+let fiatSymbols = require("./fiat-symobols.json");
 
 const settings = {
   apiKey: config.alchemy_api_key, // Replace with your Alchemy API Key.
@@ -26,10 +26,8 @@ const settings = {
 };
 
 const alchemy = new Alchemy(settings);
-
 const alchemyAPIUrl = "https://eth-mainnet.g.alchemy.com/v2/";
 const alchemyAPIKey = config.alchemy_api_key;
-
 const provider = new ethers.providers.JsonRpcProvider(
   alchemyAPIUrl + alchemyAPIKey
 );
@@ -43,7 +41,7 @@ const twitterConfig = {
 
 const twitterClient = new twit(twitterConfig);
 
-var fiatValues;
+let fiatValues;
 
 module.exports = {
   init() {
@@ -73,7 +71,7 @@ module.exports = {
   },
 
   async getTokenMetadata(tokenId) {
-    var response = await alchemy.nft.getNftMetadata(
+    let response = await alchemy.nft.getNftMetadata(
       config.contract_address,
       tokenId
     );
@@ -82,38 +80,39 @@ module.exports = {
   },
 
   async tweet(data, client) {
-    if (config.enable_twitter_sales == false) {
+    if (config.enable_twitter_sales === false) {
       console.log("Twitter sales are turned off. Ignoring tweet.");
       return;
     }
 
-    var ethValue = data.alternateValue ? data.alternateValue : data.ether;
-    var eth = currency(ethValue, { symbol: "Ξ", precision: 3 });
+    let twitterSent;
+    let ethValue = data.alternateValue ? data.alternateValue : data.ether;
+    let eth = currency(ethValue, { symbol: "Ξ", precision: 3 });
     let tweetText = createTweetText(data, ethValue);
 
     // Format our image to base64
     const image = transformImage(data.imageUrl);
 
-    var processedImage;
+    let processedImage;
     if (image) processedImage = await getBase64(image);
 
-    var media_ids;
+    let media_ids;
     if (processedImage) {
-      var imageDataToSave = processedImage.replace(
+      let imageDataToSave = processedImage.replace(
         /^data:image\/\w+;base64,/,
         ""
       );
       try {
-        var tempPath = "./tmp"
-        if (fs.existsSync(tempPath) == false) {
+        let tempPath = "./tmp"
+        if (fs.existsSync(tempPath) === false) {
           fs.mkdirSync(tempPath)
         }
-        var tempFileName = tempPath + "/temp.png";
+        let tempFileName = tempPath + "/temp.png";
         fs.writeFileSync(tempFileName, imageDataToSave, { encoding: "base64" });
 
-        var loadedImage = await Jimp.read(tempFileName);
-        var font = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
-        var tempImg = loadedImage
+        let loadedImage = await Jimp.read(tempFileName);
+        let font = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
+        let tempImg = loadedImage
           .print(font, 20, 15, "V1 PUNK #" + data.tokenId)
           .print(font, 20, 50, "SOLD");
 
@@ -130,7 +129,7 @@ module.exports = {
 
         await tempImg.writeAsync(tempFileName);
 
-        var imageFound = fs.readFileSync(tempFileName, { encoding: "base64" });
+        let imageFound = fs.readFileSync(tempFileName, { encoding: "base64" });
         //Upload the item's image to Twitter & retrieve a reference to it
         media_ids = await new Promise((resolve) => {
           twitterClient.post(
@@ -145,24 +144,27 @@ module.exports = {
         let tweet = { status: tweetText };
         if (media_ids) tweet.media_ids = media_ids;
 
-        twitterClient.post("statuses/update", tweet, (error) => {
-          if (!error) console.log(`Successfully tweeted: ${tweetText}`);
+        twitterSent = twitterClient.post("statuses/update", tweet).then((res, error) => {
+          if (!error) {
+            // console.log(`Successfully tweeted: ${tweetText}`);
+            return res.data;
+          }
           else console.error(error);
-        });
+        })
 
-        
+        sendSaleToDiscord(client, data, await twitterSent);
       } catch (err) {
         console.error(err);
       }
     }
-
-    sendSaleToDiscord(client, data);
   },
 };
 
-function sendSaleToDiscord(client, sale) {
-  var ethValue = sale.alternateValue ? sale.alternateValue : sale.ether;
-  var tweetText = createTweetText(sale, ethValue, true)
+function sendSaleToDiscord(client, sale, tweetData) {
+  let ethValue = sale.alternateValue ? sale.alternateValue : sale.ether;
+  let tweetText = createTweetText(sale, ethValue, true);
+  let tweetID = tweetData.id_str;
+
   let fields = [
     {
       name: "Buyer",
@@ -185,6 +187,12 @@ function sendSaleToDiscord(client, sale) {
         ")",
       inline: true,
     },
+    {
+      name: "Raid the tweet",
+      value:
+          "Click [here](https://twitter.com/v1salesbot/status/" + tweetID + ")",
+      inline: false,
+    }
   ];
   let item = new Discord.MessageEmbed()
     .setColor("RANDOM")
@@ -268,22 +276,22 @@ function toLowerKeys(obj) {
 }
 
 function createTweetText(data, ethValue, isDiscord) {
-  var isDiscord = isDiscord ? true : false
+  isDiscord = !!isDiscord;
   let tweetText = isDiscord ? config.discordSaleMessage : (data.type === "SALE" ? config.saleMessage : config.bidMessage); // Right now this is useless as bids arent a thing...
 
   // Cash value
-  var fiatValue = data.usdcValue
+  let fiatValue = data.usdcValue
     ? data.usdcValue
     : fiatValues[config.currency] *
       (data.alternateValue ? data.alternateValue : data.ether);
-  var fiat = currency(fiatValue, {
+  let fiat = currency(fiatValue, {
     symbol: fiatSymbols[config.currency].symbol,
     precision: 0,
   });
 
-  var eth = currency(ethValue, { symbol: "Ξ", precision: 3 });
+  let eth = currency(ethValue, { symbol: "Ξ", precision: 3 });
 
-  if (ethValue <= 0.01 && data.usdcValue == 0) {
+  if (ethValue <= 0.01 && data.usdcValue === 0) {
     // this kills the tweet process
     return;
   }

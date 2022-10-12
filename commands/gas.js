@@ -9,8 +9,8 @@ module.exports = {
         .setDescription(`Get gas cost estimation`),
 
     async execute(interaction) {
-        var usedEtherscan = false
-        var url = "https://ethgasstation.info/api/ethgasAPI.json"
+        let usedEtherscan = false
+        let url = "https://ethgasstation.info/api/ethgasAPI.json"
         if(etherscan_api_key && etherscan_api_key.length > 0) {
             url = `https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=${etherscan_api_key}`
             usedEtherscan = true

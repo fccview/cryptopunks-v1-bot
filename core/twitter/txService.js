@@ -1,12 +1,12 @@
-var { BigNumber, ethers } = require('ethers')
-var { hexToNumberString } = require('web3-utils')
+let { BigNumber, ethers } = require('ethers')
+let { hexToNumberString } = require('web3-utils')
 
-var config = require('../../config.json')
+let config = require('../../config.json')
 
-var erc721abi = require('./abi/erc721.json')
-var looksRareABI = require('./abi/looksRareABI.json')
-var nftxABI = require('./abi/nftxABI.json')
-var openseaSeaportABI = require('./abi/seaportABI.json')
+let erc721abi = require('./abi/erc721.json')
+let looksRareABI = require('./abi/looksRareABI.json')
+let nftxABI = require('./abi/nftxABI.json')
+let openseaSeaportABI = require('./abi/seaportABI.json')
 
 const base = require('./base.js');
 
@@ -16,14 +16,14 @@ const nftxInterface = new ethers.utils.Interface(nftxABI);
 const seaportInterface = new ethers.utils.Interface(openseaSeaportABI);
 const topics = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 
-var provider = base.getWeb3Provider()
+let provider = base.getWeb3Provider()
 
-var x2y2SalesQueue = []
+let x2y2SalesQueue = []
 function addToSalesQueue(sale, client) {
-  var x2y2Weirdaddress = "0x2C45Af926d5f62C5935278106800a03eB565778E".toLowerCase()
-  var weirdTo = sale.longTo == x2y2Weirdaddress
-  if(weirdTo || sale.longFrom == x2y2Weirdaddress) { // fix x2y2 single purchase weirdness...
-    if(x2y2SalesQueue.length == 1) {
+  let x2y2Weirdaddress = "0x2C45Af926d5f62C5935278106800a03eB565778E".toLowerCase()
+  let weirdTo = sale.longTo === x2y2Weirdaddress
+  if(weirdTo || sale.longFrom === x2y2Weirdaddress) { // fix x2y2 single purchase weirdness...
+    if(x2y2SalesQueue.length === 1) {
       if(weirdTo) {
         sale.to = x2y2SalesQueue[0].to
       } else {
@@ -44,7 +44,7 @@ function addToSalesQueue(sale, client) {
 
 module.exports = {
     watchForSales(client) {
-        base.init()
+        base.init();
 
         base.getAlchemy().ws.on({ address: config.contract_address, topics: [topics] },
             (event) => {
@@ -68,7 +68,7 @@ module.exports = {
         startingBlock,
         endingBlock
         ).then(events => {
-        console.log("Processing events...")
+        // console.log("Processing events...")
         for (const event of events) {
             getTransactionDetails(event).then((res) => {
               if (!res) return
@@ -82,7 +82,7 @@ module.exports = {
 }
 
 async function getTransactionDetails(tx) {
-  var foundMarketPlace = "Couldnt find it.. BUG THE BOT DEV TO FIX!"
+  let foundMarketPlace = "Couldnt find it.. BUG THE BOT DEV TO FIX!"
   let tokenId;
 
   try {
@@ -115,7 +115,7 @@ async function getTransactionDetails(tx) {
     const { value } = transaction;
     const ether = ethers.utils.formatEther(value.toString());
 
-    var isX2Y2Exchange = transaction.to.toLowerCase() === "0x74312363e45dcaba76c59ec49a7aa8a65a67eed3".toLowerCase()
+    let isX2Y2Exchange = transaction.to.toLowerCase() === "0x74312363e45dcaba76c59ec49a7aa8a65a67eed3".toLowerCase()
 
     if (transaction.to.toLowerCase() === "0x9757F2d2b135150BBeb65308D4a91804107cd8D6".toLowerCase()) {
       foundMarketPlace = "Rarible"
@@ -139,7 +139,7 @@ async function getTransactionDetails(tx) {
         return looksInterface.parseLog(log);
       }
     }).filter((log) => (log?.name === 'TakerAsk' || log?.name === 'TakerBid') &&
-      log?.args.tokenId == tokenId);
+      log?.args.tokenId === tokenId);
 
     const NFTX = receipt.logs.map((log) => {
       // direct buy from vault
@@ -189,11 +189,11 @@ async function getTransactionDetails(tx) {
       }
     }).filter(n => n !== undefined)
 
-    var rarible = receipt.logs.map((log) => {
+    let rarible = receipt.logs.map((log) => {
       if (log.address.toLowerCase() === '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'.toLowerCase()) {
         const data = log.data.substring(2);
         const dataSlices = data.match(/.{1,64}/g);
-        var totalAmount = []
+        let totalAmount = []
         dataSlices.forEach(slice => {
           const moneyIn = BigInt(`0x${slice}`)
           totalAmount.push(moneyIn)
@@ -226,7 +226,7 @@ async function getTransactionDetails(tx) {
       }
     }).filter(n => n !== undefined)
 
-    var usdcValue = 0;
+    let usdcValue = 0;
     const OPENSEA_SEAPORT = receipt.logs.map((log) => {
       if (log.topics[0].toLowerCase() === '0x9d9af8e38d66c62e2c12f0225249fd9d721c54b83f48d9352c97c6cacdcb6f31') {
         const logDescription = seaportInterface.parseLog(log);
@@ -239,14 +239,14 @@ async function getTransactionDetails(tx) {
         }
         let amounts = logDescription.args.consideration.map(c => BigInt(c.amount))
 
-        var usdc = logDescription.args.offer.filter(offer => {
+        let usdc = logDescription.args.offer.filter(offer => {
           return offer.token.toLowerCase() === "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48".toLowerCase()
         })
 
-        if (usdc.length == 0) {
+        if (usdc.length === 0) {
           logDescription.args.offer.forEach(offer => {
-            if (offer.token.toLowerCase() == "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48".toLowerCase()) {
-              var foundAmounts = []
+            if (offer.token.toLowerCase() === "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48".toLowerCase()) {
+              let foundAmounts = []
               logDescription.args.consideration.forEach(item => {
                 foundAmounts.push(BigInt(item.amount))
               })
