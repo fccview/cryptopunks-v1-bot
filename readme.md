@@ -30,3 +30,8 @@
 4. Install forever (`npm i -g forever`)
 5. Initialize slash commands (`node deploy-commands.js`)
 6. Start application (`forever start index.js`)
+
+## Contributors
+
+- [fccview](https://twitter.com/fccview)
+- [DeMemeTree](https://twitter.com/dmt_eth)
