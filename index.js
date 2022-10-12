@@ -20,7 +20,7 @@ for (const file of commandFiles) {
 
 client.once('ready', () => {
     console.log('Ready!');
-    client.user.setPresence({ activities: [{ name: `/help`, type: `Type` }] });
+    client.user.setPresence({ activities: [{ name: `Type /help`, type: `PLAYING` }] });
     const timer = 28800000;
 
     txService.watchForSales(client)
