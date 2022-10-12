@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const { Client, Collection, Intents } = require('discord.js');
 const { token } = require('./config.json');
 const core = require('./core/core');
-const sales = require("./core/all-sales");
+const txService = require("./core/twitter/txService");
 const { sales_cooldown, discord_general_chat } = require('./config.json');
 
 const client = new Client({
@@ -20,45 +20,18 @@ for (const file of commandFiles) {
 
 client.once('ready', () => {
     console.log('Ready!');
-    client.user.setPresence({ activities: [{ name: `Type /help`, type: `PLAYING` }] });
+    client.user.setPresence({ activities: [{ name: `/help`, type: `Type` }] });
     const timer = 28800000;
 
-    setInterval(function () {
-        sales.allSales(client);
-    }, sales_cooldown);
+    txService.watchForSales(client)
+
+    // setInterval(function () {
+    //     sales.allSales(client);
+    // }, sales_cooldown);
 
     setInterval(function () {
         core.safetyProtocol(client, discord_general_chat);
     }, timer);
-});
-
-client.on("messageCreate", async message => {
-    "use strict";
-
-    let allowed = false,
-        commandPrefix = '';
-
-    if (message.content.toLowerCase().includes('!')) {
-        commandPrefix = '!';
-        allowed = true;
-    } else if (message.content.toLowerCase().includes('-')) {
-        commandPrefix = '-';
-        allowed = true;
-    }
-
-    let args = message.content.slice(commandPrefix.length).trim().split(/ +/g);
-
-    //Declares Command variables
-    let command = message.content.toLowerCase();
-    const commandWithArgs = args.shift().toLowerCase();
-
-    command = command.slice(commandPrefix.length).toLowerCase();
-
-    if (allowed === true && message.content.toLowerCase().startsWith(commandPrefix)) {
-        /**
-         * TEXT COMMANDS WILL GO HERE
-         */
-    }
 });
 
 client.on('interactionCreate', async interaction => {

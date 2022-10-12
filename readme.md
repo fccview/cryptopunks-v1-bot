@@ -7,6 +7,8 @@
 
 1. Create a config.json file
 2. Fill it with the following (Change "enable_twitter_sales" to `false` to disable the twitter sales functionality)
+
+etherscan_api_key is optional 
 ```json
 {
   "token": "DISCORD_BOT_TOKEN_HERE",
@@ -28,5 +30,5 @@
 ```
 3. Initialize the project (`npm install`)
 4. Install forever (`npm i -g forever`)
-5. Initialize slash commands (`node deploy-commands.js`)
+5. Initialize slash commands (`node bot/deploy-commands.js`)
 6. Start application (`forever start index.js`)

@@ -9,15 +9,20 @@ module.exports = {
         .setDescription(`Get gas cost estimation`),
 
     async execute(interaction) {
-        let url = `https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=${etherscan_api_key}`;
+        var usedEtherscan = false
+        var url = "https://ethgasstation.info/api/ethgasAPI.json"
+        if(etherscan_api_key && etherscan_api_key.length > 0) {
+            url = `https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=${etherscan_api_key}`
+            usedEtherscan = true
+        }
 
         fetch(url)
             .then(res => res.json())
             .then(
                 json => {
-                    let fast = json.result.FastGasPrice;
-                    let average = json.result.ProposeGasPrice;
-                    let safe = json.result.suggestBaseFee;
+                    let fast = usedEtherscan ? json.result.FastGasPrice : Math.round((json.fast / 10).toFixed(2)).toString()
+                    let average = usedEtherscan ? json.result.ProposeGasPrice : Math.round((json.average / 10).toFixed(2)).toString()
+                    let safe = usedEtherscan ? json.result.suggestBaseFee : Math.round((json.safeLow / 10).toFixed(2)).toString()
 
                     let gasItem = new Discord.MessageEmbed()
                         .setColor('RANDOM')
