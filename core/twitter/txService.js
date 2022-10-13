@@ -62,7 +62,7 @@ module.exports = {
         return
         const tokenContract = new ethers.Contract(config.contract_address, erc721abi, provider);
         let filter = tokenContract.filters.Transfer();
-        const startingBlock = 15730764 
+        const startingBlock = 15734531 
         const endingBlock = startingBlock + 1
         tokenContract.queryFilter(filter,
         startingBlock,
@@ -320,6 +320,8 @@ async function getTransactionDetails(tx) {
       ensTo = await provider.lookupAddress(`${to}`);
       ensFrom = await provider.lookupAddress(`${from}`);
     }
+    var longSeller = from
+    var longBuyer = to
 
     // Set the values for address to & from -- Shorten non ens
     to = config.ens ? (ensTo ? ensTo : base.shortenAddress(to)) : base.shortenAddress(to);
@@ -341,7 +343,9 @@ async function getTransactionDetails(tx) {
       usdcValue,
       type: "SALE",
       longTo: transaction.to.toLowerCase(),
-      longFrom: transaction.from.toLowerCase()
+      longFrom: transaction.from.toLowerCase(),
+      longSeller: longSeller,
+      longBuyer: longBuyer
     };
 
     // If the image was successfully obtained

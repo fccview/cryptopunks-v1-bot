@@ -146,7 +146,6 @@ module.exports = {
 
         twitterSent = twitterClient.post("statuses/update", tweet).then((res, error) => {
           if (!error) {
-            // console.log(`Successfully tweeted: ${tweetText}`);
             return res.data;
           }
           else console.error(error);
@@ -169,12 +168,7 @@ function sendSaleToDiscord(client, sale, tweetData) {
     {
       name: "Buyer",
       value:
-        "[" + sale.to + "](https://etherscan.io/address/" + sale.longTo + ")",
-      inline: true,
-    },
-    {
-      name: "‍", // THERE IS A ZWJ in between these quotes... 
-      value: "🤝",
+        "[" + sale.to + "](https://etherscan.io/address/" + sale.longBuyer + ")",
       inline: true,
     },
     {
@@ -183,7 +177,7 @@ function sendSaleToDiscord(client, sale, tweetData) {
         "[" +
         sale.from +
         "](https://etherscan.io/address/" +
-        sale.longFrom +
+        sale.longSeller +
         ")",
       inline: true,
     },
