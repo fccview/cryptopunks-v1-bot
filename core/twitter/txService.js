@@ -62,7 +62,7 @@ module.exports = {
         return
         const tokenContract = new ethers.Contract(config.contract_address, erc721abi, provider);
         let filter = tokenContract.filters.Transfer();
-        const startingBlock = 15734531 
+        const startingBlock = 15740811 
         const endingBlock = startingBlock + 1
         tokenContract.queryFilter(filter,
         startingBlock,
@@ -79,6 +79,15 @@ module.exports = {
         }
         });
     }
+}
+
+function isSudoSwap(address) {
+  if(address.toLowerCase() === "0x2b2e8cda09bba9660dca5cb6233787738ad68329".toLowerCase()) {
+    return true
+  } else if(address.toLowerCase() === "0x5f7dcff503c0e92e92dd1d967bd569565bf90f01".toLowerCase()) {
+    return true
+  }
+  return false
 }
 
 async function getTransactionDetails(tx) {
@@ -121,7 +130,7 @@ async function getTransactionDetails(tx) {
       foundMarketPlace = "Rarible"
     } else if (transaction.to.toLowerCase() === "0xDef1C0ded9bec7F1a1670819833240f027b25EfF".toLowerCase()) {
       foundMarketPlace = "atomic0"
-    } else if (transaction.to.toLowerCase() === "0x2b2e8cda09bba9660dca5cb6233787738ad68329".toLowerCase()) {
+    } else if (isSudoSwap(transaction.to)) {
       foundMarketPlace = "SudoSwap"
     }else if(isX2Y2Exchange) {
       foundMarketPlace = "X2Y2"
