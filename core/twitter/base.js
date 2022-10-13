@@ -166,20 +166,9 @@ function sendSaleToDiscord(client, sale, tweetData) {
 
   let fields = [
     {
-      name: "Buyer",
-      value:
-        "[" + sale.to + "](https://etherscan.io/address/" + sale.longBuyer + ")",
-      inline: true,
-    },
-    {
-      name: "Seller",
-      value:
-        "[" +
-        sale.from +
-        "](https://etherscan.io/address/" +
-        sale.longSeller +
-        ")",
-      inline: true,
+      name: "Buyer ⥂ Seller",
+      value: `[${sale.to}](https://etherscan.io/address/${sale.longBuyer}) 🤝 [${sale.from}](https://etherscan.io/address/${sale.longSeller})`,
+      inline: false,
     },
     {
       name: "Raid the tweet",
