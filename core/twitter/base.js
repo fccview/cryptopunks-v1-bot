@@ -1,7 +1,7 @@
 let fs = require("fs");
 let http = require("axios");
 let currency = require("currency.js");
-let Discord = require('discord.js');
+let Discord = require("discord.js");
 let Jimp = require("jimp");
 let { Network, Alchemy } = require("alchemy-sdk");
 let ethers = require("ethers");
@@ -71,12 +71,7 @@ module.exports = {
   },
 
   async getTokenMetadata(tokenId) {
-    let response = await alchemy.nft.getNftMetadata(
-      config.contract_address,
-      tokenId
-    );
-
-    return response.rawMetadata.image;
+    return internalGetTokenMetadata(tokenId)
   },
 
   async tweet(data, client) {
@@ -103,9 +98,9 @@ module.exports = {
         ""
       );
       try {
-        let tempPath = "./tmp"
+        let tempPath = "./tmp";
         if (fs.existsSync(tempPath) === false) {
-          fs.mkdirSync(tempPath)
+          fs.mkdirSync(tempPath);
         }
         let tempFileName = tempPath + "/temp.png";
         fs.writeFileSync(tempFileName, imageDataToSave, { encoding: "base64" });
@@ -144,12 +139,13 @@ module.exports = {
         let tweet = { status: tweetText };
         if (media_ids) tweet.media_ids = media_ids;
 
-        twitterSent = twitterClient.post("statuses/update", tweet).then((res, error) => {
-          if (!error) {
-            return res.data;
-          }
-          else console.error(error);
-        })
+        twitterSent = twitterClient
+          .post("statuses/update", tweet)
+          .then((res, error) => {
+            if (!error) {
+              return res.data;
+            } else console.error(error);
+          });
 
         sendSaleToDiscord(client, data, await twitterSent);
       } catch (err) {
@@ -157,7 +153,34 @@ module.exports = {
       }
     }
   },
+
+  async wrapEvent(punkID, client) {
+    const imageUrl = await internalGetTokenMetadata(punkID)
+    
+    let item = new Discord.MessageEmbed()
+      .setColor("RANDOM")
+      .setTitle(`V1 PUNK #${punkID}`)
+      .setDescription("Has been wrapped, check it out [here](https://v1punks.io/token/ETHEREUM:0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d:" + punkID + ")")
+      .setThumbnail(transformImage(imageUrl))
+      .setFooter({ text: `Wrap Event` });
+
+    /**
+     * Send to General Chat
+     */
+    client.channels.cache
+      .get(config.discord_general_chat)
+      .send({ embeds: [item] });
+  },
 };
+
+async function internalGetTokenMetadata(tokenId) {
+  let response = await alchemy.nft.getNftMetadata(
+    config.contract_address,
+    tokenId
+  );
+
+  return response.rawMetadata.image;
+}
 
 function sendSaleToDiscord(client, sale, tweetData) {
   let ethValue = sale.alternateValue ? sale.alternateValue : sale.ether;
@@ -173,9 +196,9 @@ function sendSaleToDiscord(client, sale, tweetData) {
     {
       name: "Raid the tweet",
       value:
-          "Click [here](https://twitter.com/v1salesbot/status/" + tweetID + ")",
+        "Click [here](https://twitter.com/v1salesbot/status/" + tweetID + ")",
       inline: false,
-    }
+    },
   ];
   let item = new Discord.MessageEmbed()
     .setColor("RANDOM")
@@ -260,7 +283,11 @@ function toLowerKeys(obj) {
 
 function createTweetText(data, ethValue, isDiscord) {
   isDiscord = !!isDiscord;
-  let tweetText = isDiscord ? config.discordSaleMessage : (data.type === "SALE" ? config.saleMessage : config.bidMessage); // Right now this is useless as bids arent a thing...
+  let tweetText = isDiscord
+    ? config.discordSaleMessage
+    : data.type === "SALE"
+    ? config.saleMessage
+    : config.bidMessage; // Right now this is useless as bids arent a thing...
 
   // Cash value
   let fiatValue = data.usdcValue
