@@ -41,7 +41,7 @@ module.exports = {
         });
 
         // this will test a wrap transaction
-        //return
+        return
         const tokenContractW = new ethers.Contract("0x6Ba6f2207e343923BA692e5Cae646Fb0F566DB8D", erc20abi, provider);
         let filterW = tokenContractW.filters.PunkBought();
         const startingBlockW = 14557905  
