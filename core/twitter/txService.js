@@ -44,31 +44,9 @@ function addToSalesQueue(sale, client) {
   base.tweet(sale, client)
 }
 
-async function processWrapEvent(event, client) {
-  try {
-    let from = ethers.utils.defaultAbiCoder.decode(['address'], event?.topics[2])[0];
-    let to = ethers.utils.defaultAbiCoder.decode(['address'], event?.topics[3])[0];
-    let punkID = ethers.utils.defaultAbiCoder.decode(['uint'], event?.topics[1])[0].toString();
-
-    if(from.toLowerCase() === "0x282BDD42f4eb70e7A9D9F40c8fEA0825B7f68C5D".toLowerCase() && from === to) {
-      await base.wrapEvent(punkID, client)
-    }
-  } catch(error) {
-    // console.log(error)
-  }
-}
-
 module.exports = {
     watchForSales(client) {
         base.init();
-
-        // listen to wrap events..
-        base.getAlchemy().ws.on({
-          address: "0x6Ba6f2207e343923BA692e5Cae646Fb0F566DB8D",
-          topics: [wrapTopic]
-        }, async (event) => {
-          await processWrapEvent(event, client)
-        });
 
         base.getAlchemy().ws.on({ address: config.contract_address, topics: [transferTopic] },
             (event) => {
@@ -102,22 +80,6 @@ module.exports = {
             });
         }
         });
-
-
-        // this will test a wrap transaction
-        return
-        const tokenContractW = new ethers.Contract("0x6Ba6f2207e343923BA692e5Cae646Fb0F566DB8D", erc20abi, provider);
-        let filterW = tokenContractW.filters.PunkBought();
-        const startingBlockW = 14557905  
-        const endingBlockW = startingBlockW + 1
-        tokenContractW.queryFilter(filterW,
-        startingBlockW,
-        endingBlockW
-        ).then(async (events) => {
-          for (const event of events) {
-            await processWrapEvent(event, client)
-          }
-        });
     }
 }
 
@@ -125,6 +87,8 @@ function isSudoSwap(address) {
   if(address.toLowerCase() === "0x2b2e8cda09bba9660dca5cb6233787738ad68329".toLowerCase()) {
     return true
   } else if(address.toLowerCase() === "0x5f7dcff503c0e92e92dd1d967bd569565bf90f01".toLowerCase()) {
+    return true
+  } else if(address.toLowerCase() === "0x7dd72c02935b568cd15d399b4eaccb5efa778bc5".toLowerCase()) {
     return true
   }
   return false
