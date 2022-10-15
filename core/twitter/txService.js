@@ -3,6 +3,7 @@ let { hexToNumberString } = require('web3-utils')
 
 let config = require('../../config.json')
 
+let erc20abi = require('./abi/cryptoPunkERC20abi.json')
 let erc721abi = require('./abi/erc721.json')
 let looksRareABI = require('./abi/looksRareABI.json')
 let nftxABI = require('./abi/nftxABI.json')
@@ -14,7 +15,8 @@ const looksRareContractAddress = '0x59728544b08ab483533076417fbbb2fd0b17ce3a'; /
 const looksInterface = new ethers.utils.Interface(looksRareABI);
 const nftxInterface = new ethers.utils.Interface(nftxABI);
 const seaportInterface = new ethers.utils.Interface(openseaSeaportABI);
-const topics = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+const transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
+const wrapTopic = "0x58e5d5a525e3b40bc15abaa38b5882678db1ee68befd2f60bafe3a7fd06db9e3"
 
 let provider = base.getWeb3Provider()
 
@@ -46,7 +48,7 @@ module.exports = {
     watchForSales(client) {
         base.init();
 
-        base.getAlchemy().ws.on({ address: config.contract_address, topics: [topics] },
+        base.getAlchemy().ws.on({ address: config.contract_address, topics: [transferTopic] },
             (event) => {
               getTransactionDetails(event).then((res) => {
                 if (!res) return
@@ -85,6 +87,8 @@ function isSudoSwap(address) {
   if(address.toLowerCase() === "0x2b2e8cda09bba9660dca5cb6233787738ad68329".toLowerCase()) {
     return true
   } else if(address.toLowerCase() === "0x5f7dcff503c0e92e92dd1d967bd569565bf90f01".toLowerCase()) {
+    return true
+  } else if(address.toLowerCase() === "0x7dd72c02935b568cd15d399b4eaccb5efa778bc5".toLowerCase()) {
     return true
   }
   return false

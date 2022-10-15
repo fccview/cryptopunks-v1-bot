@@ -3,6 +3,7 @@ const { Client, Collection, Intents } = require('discord.js');
 const { token } = require('./config.json');
 const core = require('./core/core');
 const txService = require("./core/twitter/txService");
+const wrapService = require('./core/twitter/wrapService');
 const { discord_general_chat } = require('./config.json');
 
 const client = new Client({
@@ -24,6 +25,7 @@ client.once('ready', () => {
     const timer = 28800000;
 
     txService.watchForSales(client)
+    wrapService.watchForWraps(client)
 
     setInterval(function () {
         core.safetyProtocol(client, discord_general_chat);
