@@ -85,6 +85,11 @@ module.exports = {
     let eth = currency(ethValue, { symbol: "Ξ", precision: 3 });
     let tweetText = createTweetText(data, ethValue);
 
+    let fiatValue = data.usdcValue
+    ? data.usdcValue
+    : fiatValues[config.currency] *
+      (data.alternateValue ? data.alternateValue : data.ether);
+
     // Format our image to base64
     const image = transformImage(data.imageUrl);
 

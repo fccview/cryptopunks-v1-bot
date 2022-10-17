@@ -64,7 +64,7 @@ module.exports = {
         return
         const tokenContract = new ethers.Contract(config.contract_address, erc721abi, provider);
         let filter = tokenContract.filters.Transfer();
-        const startingBlock = 15740811 
+        const startingBlock = 15755989 
         const endingBlock = startingBlock + 1
         tokenContract.queryFilter(filter,
         startingBlock,
@@ -90,12 +90,14 @@ function isSudoSwap(address) {
     return true
   } else if(address.toLowerCase() === "0x7dd72c02935b568cd15d399b4eaccb5efa778bc5".toLowerCase()) {
     return true
+  } else if(address.toLowerCase() === "0xbc24f20524298d6a1201e194c4f38e4655fb8ce6".toLowerCase()) {
+    return true
   }
   return false
 }
 
 async function getTransactionDetails(tx) {
-  let foundMarketPlace = "Couldnt find it.. BUG THE BOT DEV TO FIX!"
+  let foundMarketPlace = "Probably SudoSwap"
   let tokenId;
 
   try {
