@@ -64,7 +64,7 @@ module.exports = {
         return
         const tokenContract = new ethers.Contract(config.contract_address, erc721abi, provider);
         let filter = tokenContract.filters.Transfer();
-        const startingBlock = 15740811 
+        const startingBlock = 15902956 
         const endingBlock = startingBlock + 1
         tokenContract.queryFilter(filter,
         startingBlock,
@@ -77,9 +77,9 @@ module.exports = {
               if (res?.ether || res?.alternateValue || res?.usdcValue) {
                 addToSalesQueue(res, client)
               }
-            });
+            })
         }
-        });
+        })
     }
 }
 
@@ -129,6 +129,7 @@ async function getTransactionDetails(tx) {
     const ether = ethers.utils.formatEther(value.toString());
 
     let isX2Y2Exchange = transaction.to.toLowerCase() === "0x74312363e45dcaba76c59ec49a7aa8a65a67eed3".toLowerCase()
+    let isLooksrare = transaction.to.toLowerCase() === "0x59728544b08ab483533076417fbbb2fd0b17ce3a".toLowerCase()
 
     if (transaction.to.toLowerCase() === "0x9757F2d2b135150BBeb65308D4a91804107cd8D6".toLowerCase()) {
       foundMarketPlace = "Rarible"
@@ -138,6 +139,8 @@ async function getTransactionDetails(tx) {
       foundMarketPlace = "SudoSwap"
     }else if(isX2Y2Exchange) {
       foundMarketPlace = "X2Y2"
+    } else if(isLooksrare) {
+      foundMarketPlace = "LooksRare"
     }
     // Get transaction receipt
     const receipt = await provider.getTransactionReceipt(transactionHash);
@@ -307,17 +310,16 @@ async function getTransactionDetails(tx) {
       alternateValue = parseFloat(OPENSEA_SEAPORT[0].toString()) / 1000;
       foundMarketPlace = "Opensea"
     } else if (rarible.length) {
-      if(isX2Y2Exchange) {
+      if(isX2Y2Exchange || isLooksrare) {
         const amount = BigInt(rarible[0])
         alternateValue = parseFloat((amount / BigInt('1000000000000000')).toString()) / 1000
       } else {
         const amount = rarible.reduce((previous, current) => previous + current, BigInt(0))
-      alternateValue = parseFloat((amount / BigInt('1000000000000000')).toString()) / 1000
+        alternateValue = parseFloat((amount / BigInt('1000000000000000')).toString()) / 1000
       }
     } else if (sudoswap.length) {
       alternateValue = parseFloat(sudoswap[0].toString()) / 100
     }
-
 
     // if there is an NFTX swap involved, ignore this transfer
     const swaps = receipt.logs.filter((log2) => log2.topics[0].toLowerCase() === '0x7af2bc3f8ec800c569b6555feaf16589d96a9d04a49d1645fd456d75fa0b372b')
