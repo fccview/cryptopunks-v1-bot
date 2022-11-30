@@ -109,6 +109,11 @@ async function getTransactionDetails(tx) {
     // transaction afterward (the one that'll go to the buyer wallet)
     const code = await provider.getCode(to)
 
+    if(transaction.to.toLowerCase() === "0x18ddd8e16b0b0fb7679397c6e8f4ec06ea3f0a95".toLowerCase()) {
+      // swap kiwi so we skip that shiz
+      return
+    }
+
     if (code !== '0x' && tx.address.toLowerCase() !== "0x282BDD42f4eb70e7A9D9F40c8fEA0825B7f68C5D".toLowerCase()) {
       //console.log(`contract detected for ${tx.transactionHash} event index ${tx.logIndex}`)
       return
@@ -132,6 +137,7 @@ async function getTransactionDetails(tx) {
 
     let isX2Y2Exchange = transaction.to.toLowerCase() === "0x74312363e45dcaba76c59ec49a7aa8a65a67eed3".toLowerCase()
     let isLooksrare = transaction.to.toLowerCase() === "0x59728544b08ab483533076417fbbb2fd0b17ce3a".toLowerCase()
+    let gemSwap = transaction.to.toLowerCase() === "0x83c8f28c26bf6aaca652df1dbbe0e1b56f8baba2".toLowerCase()
 
     if (transaction.to.toLowerCase() === "0x9757F2d2b135150BBeb65308D4a91804107cd8D6".toLowerCase()) {
       foundMarketPlace = "Rarible"
@@ -143,6 +149,8 @@ async function getTransactionDetails(tx) {
       foundMarketPlace = "X2Y2"
     } else if(isLooksrare) {
       foundMarketPlace = "LooksRare"
+    } else if(gemSwap) {
+      foundMarketPlace = "GemSwap"
     }
     // Get transaction receipt
     const receipt = await provider.getTransactionReceipt(transactionHash);
@@ -312,7 +320,7 @@ async function getTransactionDetails(tx) {
       alternateValue = parseFloat(OPENSEA_SEAPORT[0].toString()) / 1000;
       foundMarketPlace = "Opensea"
     } else if (rarible.length) {
-      if(isX2Y2Exchange || isLooksrare) {
+      if(isX2Y2Exchange || isLooksrare || gemSwap) {
         const amount = BigInt(rarible[0])
         alternateValue = parseFloat((amount / BigInt('1000000000000000')).toString()) / 1000
       } else {
