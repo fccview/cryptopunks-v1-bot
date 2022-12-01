@@ -109,11 +109,6 @@ async function getTransactionDetails(tx) {
     // transaction afterward (the one that'll go to the buyer wallet)
     const code = await provider.getCode(to)
 
-    if(transaction.to.toLowerCase() === "0x18ddd8e16b0b0fb7679397c6e8f4ec06ea3f0a95".toLowerCase()) {
-      // swap kiwi so we skip that shiz
-      return
-    }
-
     if (code !== '0x' && tx.address.toLowerCase() !== "0x282BDD42f4eb70e7A9D9F40c8fEA0825B7f68C5D".toLowerCase()) {
       //console.log(`contract detected for ${tx.transactionHash} event index ${tx.logIndex}`)
       return
@@ -132,6 +127,12 @@ async function getTransactionDetails(tx) {
 
     // Get transaction
     const transaction = await provider.getTransaction(transactionHash);
+
+    if(transaction.to.toLowerCase() === "0x18ddd8e16b0b0fb7679397c6e8f4ec06ea3f0a95".toLowerCase()) {
+      // swap kiwi so we skip that shiz
+      return
+    }
+
     const { value } = transaction;
     const ether = ethers.utils.formatEther(value.toString());
 
