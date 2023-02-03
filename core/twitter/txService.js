@@ -20,16 +20,40 @@ const wrapTopic = "0x58e5d5a525e3b40bc15abaa38b5882678db1ee68befd2f60bafe3a7fd06
 
 let provider = base.getWeb3Provider()
 
+
+
+let blurAddress = "0x39da41747a83aee658334415666f3ef92dd0d541".toLowerCase()
+
+function isWeirdAddress(address) {
+  return address.toLowerCase() === "0x2C45Af926d5f62C5935278106800a03eB565778E".toLowerCase() || 
+         address.toLowerCase() === blurAddress ||
+         address.toLowerCase() === "0xbbfb8588c36fd31b1b446fc55b9880ea6928b4ac".toLowerCase()
+}
+
 let x2y2SalesQueue = []
 function addToSalesQueue(sale, client) {
-  let x2y2Weirdaddress = "0x2C45Af926d5f62C5935278106800a03eB565778E".toLowerCase()
-  let weirdTo = sale.longTo === x2y2Weirdaddress
-  if(weirdTo || sale.longFrom === x2y2Weirdaddress) { // fix x2y2 single purchase weirdness...
+  let weirdTo = isWeirdAddress(sale.longTo)
+  let weirdFrom = isWeirdAddress(sale.longFrom)
+  if(weirdTo || weirdFrom) { // fix single purchase weirdness...
     if(x2y2SalesQueue.length === 1) {
-      if(weirdTo) {
-        sale.to = x2y2SalesQueue[0].to
+      if(sale.longSeller.toLowerCase() === blurAddress || sale.longBuyer.toLowerCase() === blurAddress) {
+        if(x2y2SalesQueue[0].longBuyer.toLowerCase() === blurAddress) {
+          sale.from = x2y2SalesQueue[0].from
+          sale.longFrom = x2y2SalesQueue[0].longFrom
+          sale.longSeller = x2y2SalesQueue[0].longSeller
+        }
+  
+        if(x2y2SalesQueue[0].longSeller.toLowerCase() === blurAddress) {
+          sale.to = x2y2SalesQueue[0].to
+          sale.longTo = x2y2SalesQueue[0].longTo
+          sale.longBuyer = x2y2SalesQueue[0].longBuyer
+        }
       } else {
-        sale.from = x2y2SalesQueue[0].from
+        if(weirdTo) {
+          sale.to = x2y2SalesQueue[0].to
+        } else {
+          sale.from = x2y2SalesQueue[0].from
+        }
       }
       // we need to reset since we are allowing the sale to go through.
       x2y2SalesQueue = []
@@ -64,7 +88,7 @@ module.exports = {
         return
         const tokenContract = new ethers.Contract(config.contract_address, erc721abi, provider);
         let filter = tokenContract.filters.Transfer();
-        const startingBlock = 15902956 
+        const startingBlock = 16534948     
         const endingBlock = startingBlock + 1
         tokenContract.queryFilter(filter,
         startingBlock,
@@ -134,10 +158,11 @@ async function getTransactionDetails(tx) {
     }
 
     const { value } = transaction;
-    const ether = ethers.utils.formatEther(value.toString());
+    var ether = ethers.utils.formatEther(value.toString());
 
     let isX2Y2Exchange = transaction.to.toLowerCase() === "0x74312363e45dcaba76c59ec49a7aa8a65a67eed3".toLowerCase()
     let isLooksrare = transaction.to.toLowerCase() === "0x59728544b08ab483533076417fbbb2fd0b17ce3a".toLowerCase()
+    let isBlur = transaction.to.toLowerCase() === blurAddress
     let isGemSwap = transaction.to.toLowerCase() === "0x83c8f28c26bf6aaca652df1dbbe0e1b56f8baba2".toLowerCase()
 
     if (transaction.to.toLowerCase() === "0x9757F2d2b135150BBeb65308D4a91804107cd8D6".toLowerCase()) {
@@ -150,6 +175,8 @@ async function getTransactionDetails(tx) {
       foundMarketPlace = "X2Y2"
     } else if(isLooksrare) {
       foundMarketPlace = "LooksRare"
+    } else if(isBlur) {
+      foundMarketPlace = "Blur"
     } else if(isGemSwap) {
       foundMarketPlace = "GemSwap"
     }
@@ -167,6 +194,15 @@ async function getTransactionDetails(tx) {
       }
     }).filter((log) => (log?.name === 'TakerAsk' || log?.name === 'TakerBid') &&
       log?.args.tokenId === tokenId);
+
+    
+    if(isBlur) {
+      receipt.logs.forEach((log) => {
+        if (log.topics.length == 3 && log.topics[0].toLowerCase() === "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef".toLowerCase()) {
+          ether = ethers.utils.formatEther(BigInt(log.data).toString())
+        }
+      })
+    }
 
     const NFTX = receipt.logs.map((log) => {
       // direct buy from vault
@@ -321,7 +357,7 @@ async function getTransactionDetails(tx) {
       alternateValue = parseFloat(OPENSEA_SEAPORT[0].toString()) / 1000;
       foundMarketPlace = "Opensea"
     } else if (rarible.length) {
-      if(isX2Y2Exchange || isLooksrare || isGemSwap) {
+      if(isX2Y2Exchange || isGemSwap) {
         const amount = BigInt(rarible[0])
         alternateValue = parseFloat((amount / BigInt('1000000000000000')).toString()) / 1000
       } else {
