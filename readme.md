@@ -1,4 +1,5 @@
 # How to:
+
 ## Requirements
 
 - Node v17.3.0 (tested)
@@ -7,6 +8,7 @@
 
 1. Create a config.json file
 2. Fill it with the following (Change "enable_twitter_sales" to `false` to disable the twitter sales functionality). `etherscan_api_key` is optional.
+
 ```json
 {
   "token": "DISCORD_BOT_TOKEN_HERE",
@@ -27,9 +29,11 @@
   "currency": "usd",
   "saleMessage": "CryptoPunk V1 #<tokenId> was bought for <ethPrice>💵 (<fiatPrice>)\n\nBUYER: <to>\n🤝\nSELLER: <from>\n\n🛒 MARKETPLACE: <marketplace>\n\n➡️  https://v1punks.io/token/ETHEREUM:0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d:<tokenId>\n\n➡️  https://etherscan.io/tx/<txHash>\n\n",
   "discordSaleMessage": "Has been bought for <ethPrice> (<fiatPrice>)\n\n[v1punks.io](https://v1punks.io/token/ETHEREUM:0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d:<tokenId>)\n\n[Etherscan](https://etherscan.io/tx/<txHash>)\n\n\n",
-  "ens": true
+  "ens": true,
+  "openaiKey": "OPEN_AI_API_HERE
 }
 ```
+
 3. Initialize the project (`npm install`)
 4. Install forever (`npm i -g forever`)
 5. Initialize slash commands (`node bot/deploy-commands.js`)
