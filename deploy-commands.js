@@ -5,7 +5,7 @@ const { clientId, guildId, token } = require('./config.json');
 
 const commands = [];
 
-const commandDIR = "./commands"
+const commandDIR = "/commands"
 const commandFiles = fs.readdirSync(commandDIR).filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
