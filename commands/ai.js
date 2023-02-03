@@ -24,7 +24,7 @@ const ask = async (prompt) => {
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('ai')
-        .setDescription(`Let the Animetaverse Bot AI answer your questions. Powered by ChatGPT`)
+        .setDescription(`Let the V1 Punks Bot AI answer your questions. Powered by openai`)
         .addStringOption(option =>
             option.setName('input')
                 .setDescription('Ask something')
