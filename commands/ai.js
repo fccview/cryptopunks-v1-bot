@@ -33,6 +33,8 @@ module.exports = {
 
     async execute(interaction) {
         if (openaiKey) {
+            await interaction.deferReply({ephemeral: false});
+            
             if (answer.length > 1999) {
                 if (answer.length > 4095) {
                     const chunks = chunkString(answer, 4095);
