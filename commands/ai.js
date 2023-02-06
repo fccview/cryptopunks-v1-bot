@@ -11,8 +11,8 @@ const ask = async (prompt) => {
   const response = await openai.createCompletion({
       model: "text-davinci-003",
       prompt,
-      temperature: 0.7,
-      max_tokens: 256,
+      temperature: 1,
+      max_tokens: 700,
       top_p: 1,
       frequency_penalty: 0,
       presence_penalty: 0,
