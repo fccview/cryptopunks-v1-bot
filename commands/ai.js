@@ -34,6 +34,8 @@ module.exports = {
     async execute(interaction) {
         if (openaiKey) {
             await interaction.deferReply({ephemeral: false});
+            const prompt = interaction.options.getString('input');
+            const answer = await ask(prompt);
             
             if (answer.length > 1999) {
                 if (answer.length > 4095) {
