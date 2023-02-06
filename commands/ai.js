@@ -29,7 +29,7 @@ const chunkString = (str, length) => {
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('ai')
-        .setDescription(`Let the Animetaverse Bot AI answer your questions. Powered by ChatGPT`)
+        .setDescription(`Let the CryptoPunks V1 Bot AI answer your questions. Powered by ChatGPT`)
         .addStringOption(option =>
             option.setName('input')
                 .setDescription('Ask something')
