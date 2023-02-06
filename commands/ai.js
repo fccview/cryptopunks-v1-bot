@@ -56,15 +56,15 @@ module.exports = {
                         .setDescription(str)
                     });
 
-                interaction.editReply({embeds: embeds});         
+                await interaction.editReply({embeds: embeds});         
             } else {
                 const embed = new Discord.MessageEmbed()
                     .setColor("RANDOM")
                     .setDescription(answer);
-                interaction.editReply({embeds: [embed]})
+                await interaction.editReply({embeds: [embed]})
             }
         } else {
-            interaction.editReply({content: answer});
+            await interaction.editReply({content: answer});
         }        
     },
 };
