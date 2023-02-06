@@ -1,9 +1,10 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { openaiKey } = require('../config.json');
+const Discord = require("discord.js");
+const { gptKey } = require('../config.json');
 
 const { Configuration, OpenAIApi } = require("openai");
 const configuration = new Configuration({
-    apiKey: openaiKey,
+    apiKey: gptKey,
 });
 const openai = new OpenAIApi(configuration);
 
@@ -11,8 +12,8 @@ const ask = async (prompt) => {
   const response = await openai.createCompletion({
       model: "text-davinci-003",
       prompt,
-      temperature: 0.7,
-      max_tokens: 256,
+      temperature: 1,
+      max_tokens: 700,
       top_p: 1,
       frequency_penalty: 0,
       presence_penalty: 0,
@@ -21,25 +22,49 @@ const ask = async (prompt) => {
   return answer;
 }
 
+const chunkString = (str, length) => {
+    return str.match(new RegExp('.{1,' + length + '}', 'g'));
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('ai')
-        .setDescription(`Let the V1 Punks Bot AI answer your questions. Powered by openai`)
+        .setDescription(`Let the Animetaverse Bot AI answer your questions. Powered by ChatGPT`)
         .addStringOption(option =>
             option.setName('input')
                 .setDescription('Ask something')
                 .setRequired(true)
         ),
 
-    async execute(interaction) {
-        if (openaiKey) {
-            await interaction.deferReply({ephemeral: false});
-            const prompt = interaction.options.getString('input');
-            const answer = await ask(prompt);
+    chunkString(str, length) {
+        return str.match(new RegExp('.{1,' + length + '}', 'g'));
+    },
 
-            interaction.editReply({content: answer});
+    async execute(interaction) {
+        await interaction.deferReply({ephemeral: false});
+        const prompt = interaction.options.getString('input');
+        const answer = await ask(prompt);
+
+        console.log(answer.length);
+
+        if (answer.length > 1999) {
+            if (answer.length > 4095) {
+                const chunks = chunkString(answer, 4095);
+                const embeds = chunks.map((str) => {
+                    return new Discord.MessageEmbed()
+                        .setColor("RANDOM")
+                        .setDescription(str)
+                    });
+
+                interaction.editReply({embeds: embeds});         
+            } else {
+                const embed = new Discord.MessageEmbed()
+                    .setColor("RANDOM")
+                    .setDescription(answer);
+                interaction.editReply({embeds: [embed]})
+            }
         } else {
-            interaction.reply({content: 'The author has not set an openai api key.', ephemeral: true});
-        }
+            interaction.editReply({content: answer});
+        }        
     },
 };
