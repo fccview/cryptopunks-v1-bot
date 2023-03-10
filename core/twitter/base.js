@@ -173,6 +173,13 @@ module.exports = {
      * Send to General Chat
      */
     client.channels.cache
+      .get(config.discord_wraps_channel)
+      .send({ embeds: [item] });
+
+    /**
+     * Send to General Chat
+     */
+    client.channels.cache
       .get(config.discord_general_chat)
       .send({ embeds: [item] });
   },
