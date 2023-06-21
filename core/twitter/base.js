@@ -75,84 +75,7 @@ module.exports = {
   },
 
   async tweet(data, client) {
-    if (config.enable_twitter_sales === false) {
-      console.log("Twitter sales are turned off. Ignoring tweet.");
-      return;
-    }
-
-    let twitterSent;
-    let ethValue = data.alternateValue ? data.alternateValue : data.ether;
-    let eth = currency(ethValue, { symbol: "Ξ", precision: 3 });
-    let tweetText = createTweetText(data, ethValue);
-
-    let fiatValue = data.usdcValue
-    ? data.usdcValue
-    : fiatValues[config.currency] *
-      (data.alternateValue ? data.alternateValue : data.ether);
-
-    // Format our image to base64
-    const image = transformImage(data.imageUrl);
-
-    let processedImage;
-    if (image) processedImage = await getBase64(image);
-
-    let media_ids;
-    if (processedImage) {
-      let imageDataToSave = processedImage.replace(
-        /^data:image\/\w+;base64,/,
-        ""
-      );
-      try {
-        let tempPath = "./tmp";
-        if (fs.existsSync(tempPath) === false) {
-          fs.mkdirSync(tempPath);
-        }
-        let tempFileName = tempPath + "/temp.png";
-        fs.writeFileSync(tempFileName, imageDataToSave, { encoding: "base64" });
-
-        let loadedImage = await Jimp.read(tempFileName);
-        let font = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
-        let tempImg = loadedImage
-          .print(font, 20, 15, "V1 PUNK #" + data.tokenId)
-          .print(font, 20, 50, "SOLD");
-
-        if (ethValue) {
-          tempImg = tempImg.print(
-            font,
-            20,
-            85,
-            eth.format().slice(1, -1) + " ETH"
-          );
-        } else {
-          tempImg = tempImg.print(font, 20, 85, fiatValue + " USDC");
-        }
-
-        await tempImg.writeAsync(tempFileName);
-
-        let imageFound = fs.readFileSync(tempFileName, { encoding: "base64" });
-        //Upload the item's image to Twitter & retrieve a reference to it
-        media_ids = await new Promise((resolve) => {
-          twitterClient.post(
-            "media/upload",
-            { media_data: imageFound },
-            (error, media) => {
-              resolve(error ? null : [media.media_id_string]);
-            }
-          );
-        });
-
-        let tweet = { status: tweetText };
-        if (media_ids) tweet.media_ids = media_ids;
-
-        twitterSent = twitterClient
-          .post("statuses/update", tweet)
-          .then((res, error) => {
-            if (!error) {
-              return res.data;
-            } else console.error(error);
-          });
-
-        sendSaleToDiscord(client, data, await twitterSent);
+        sendSaleToDiscord(client, data);
       } catch (err) {
         console.error(err);
       }
@@ -194,7 +117,7 @@ async function internalGetTokenMetadata(tokenId) {
   return response.rawMetadata.image;
 }
 
-function sendSaleToDiscord(client, sale, tweetData) {
+function sendSaleToDiscord(client, sale) {
   let ethValue = sale.alternateValue ? sale.alternateValue : sale.ether;
   let tweetText = createTweetText(sale, ethValue, true);
   let tweetID = tweetData.id_str;
@@ -204,13 +127,7 @@ function sendSaleToDiscord(client, sale, tweetData) {
       name: "Buyer ⥂ Seller",
       value: `[${sale.to}](https://etherscan.io/address/${sale.longBuyer}) 🤝 [${sale.from}](https://etherscan.io/address/${sale.longSeller})`,
       inline: false,
-    },
-    {
-      name: "Raid the tweet",
-      value:
-        "Click [here](https://twitter.com/v1salesbot/status/" + tweetID + ")",
-      inline: false,
-    },
+    }
   ];
   let item = new Discord.MessageEmbed()
     .setColor("RANDOM")
