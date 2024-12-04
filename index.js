@@ -54,7 +54,7 @@ process.on("uncaughtExceptionMonitor", async (err) => {
     console.error("Uncaught Promise Exception (Monitor):\n", err);
 });
 process.on("multipleResolves", async (type, promise, reason) => {
-    if(type === "reject" && await promise === '1') { return } // timeout from alchemy sdk just ignore
+    if (type === "reject" && await promise === '1') { return } // timeout from alchemy sdk just ignore
     console.error("Multiple Resolves:\n", type, promise, reason);
 });
 
