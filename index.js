@@ -2,9 +2,8 @@ const fs = require('node:fs');
 const { Client, Collection, Intents } = require('discord.js');
 const { token } = require('./config.json');
 const core = require('./core/core');
-const txService = require("./core/twitter/txService");
-const wrapService = require('./core/twitter/wrapService');
 const { discord_general_chat } = require('./config.json');
+const { startSalesTracking } = require('./core/sales');
 
 const client = new Client({
     partials: ['MESSAGE', 'CHANNEL', 'REACTION'],
@@ -22,11 +21,9 @@ for (const file of commandFiles) {
 client.once('ready', () => {
     console.log('Ready!');
     client.user.setPresence({ activities: [{ name: `Type /help`, type: `PLAYING` }] });
+    startSalesTracking(client);
+
     const timer = 28800000;
-
-    txService.watchForSales(client)
-    wrapService.watchForWraps(client)
-
     setInterval(function () {
         core.safetyProtocol(client, discord_general_chat);
     }, timer);
