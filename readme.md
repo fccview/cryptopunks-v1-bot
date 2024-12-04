@@ -2,7 +2,16 @@
 
 ## Requirements
 
-- Node v17.3.0 (tested)
+- Node v18.20.5 (tested)
+
+## Support the Project ❤️
+
+If you find this bot helpful, consider supporting me, every donation helps me continue creating useful tools for the community:
+
+```
+SOL: 3VpNWv517ccnshXFCKYgf3GeAxk4DzhrowhQEa3rrUrn
+ETH: 0xfe89834C92C399E720F457bB73fEa1EFe1D0e17D
+```
 
 ## Steps
 
@@ -18,19 +27,8 @@
   "guildId": "DISCORD_SERVER_GUILD_ID_HERE",
   "os_api_key": "OS_API_KEY_HERE",
   "etherscan_api_key": "ETHERSCAN_API_KEY_HERE",
-  "discord_sales_channel": "SALES_DISCORD_CHANNEL_ID_HERE",
   "discord_general_chat": "DISCORD_GENERAL_CHAT_CHANNEL_ID_HERE",
   "alchemy_api_key": "ALCHEMY_API_KEY_HERE",
-  "enable_twitter_sales": true,
-  "twitter_api_key": "TWITTER_API_KEY_HERE",
-  "twitter_api_secret": "TWITTER_API_SECRET_HERE",
-  "twitter_access_token": "TWITTER_ACCESS_TOKEN_HERE",
-  "twitter_access_token_secret": "TWITTER_ACCESS_TOKEN_SECRET_HERE",
-  "currency": "usd",
-  "saleMessage": "CryptoPunk V1 #<tokenId> was bought for <ethPrice>💵 (<fiatPrice>)\n\nBUYER: <to>\n🤝\nSELLER: <from>\n\n🛒 MARKETPLACE: <marketplace>\n\n➡️  https://v1punks.io/token/ETHEREUM:0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d:<tokenId>\n\n➡️  https://etherscan.io/tx/<txHash>\n\n",
-  "discordSaleMessage": "Has been bought for <ethPrice> (<fiatPrice>)\n\n[v1punks.io](https://v1punks.io/token/ETHEREUM:0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d:<tokenId>)\n\n[Etherscan](https://etherscan.io/tx/<txHash>)\n\n\n",
-  "ens": true,
-  "openaiKey": "OPEN_AI_API_HERE
 }
 ```
 
