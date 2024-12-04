@@ -3,6 +3,9 @@ const Discord = require('discord.js');
 const ethers = require('ethers');
 const { contract_address, alchemy_api_key, discord_general_chat } = require('../config.json');
 
+/** @todo Set the Discord channel ID here for debugging. */
+// const discord_general_chat = `932316690816073729`;
+
 const ALCHEMY_API_URL = `https://eth-mainnet.g.alchemy.com/v2/${alchemy_api_key}`;
 const TRANSFER_EVENT_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 
@@ -167,6 +170,9 @@ async function processSaleLog(log, client) {
             if (parseInt(priceInEth) > 0) {
                 const marketplace = await getMarketplace(transactionHash);
                 const url = MARKETPLACE_URLS[marketplace] || MARKETPLACE_URLS['Blur'];
+                const tweetText = encodeURIComponent(`Punk #${tokenId} was just sold for ${priceInEth} ETH on ${marketplace}! 🎉\n\nView: ${url}${tokenId}`);
+                const tweetUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
+
                 const embed = new Discord.MessageEmbed()
                     .setColor('#0099ff')
                     .setTitle(`Punk #${tokenId} was just sold for ${priceInEth} ETH`)
@@ -174,13 +180,22 @@ async function processSaleLog(log, client) {
                         { name: 'Token ID', value: tokenId, inline: true },
                         { name: 'Buyer', value: `${to.slice(0, 4)}...${to.slice(-4)}`, inline: true },
                         { name: 'Sale', value: `[${marketplace}](${url}${tokenId})` },
-                        { name: 'Transaction', value: `[View on Etherscan](https://etherscan.io/tx/${transactionHash})` },
+                        { name: 'Transaction', value: `[View on Etherscan](https://etherscan.io/tx/${transactionHash})` }
                     )
                     .setFooter({ text: `Marketplace: ${marketplace}` })
                     .setThumbnail(`https://ipfs.io/ipfs/QmbuBFTZe5ygELZhRtQkpM3NW8nVXxRUNK9W2XFbAXtPLV/${tokenId}.png`)
                     .setTimestamp();
+
+                const row = new Discord.MessageActionRow()
+                    .addComponents(
+                        new Discord.MessageButton()
+                            .setLabel('Tweet this sale 🐦')
+                            .setStyle('LINK')
+                            .setURL(tweetUrl)
+                    );
+
                 try {
-                    await channel.send({ embeds: [embed] });
+                    await channel.send({ embeds: [embed], components: [row] });
                 } catch (error) {
                     console.error(error.stack);
                 }
@@ -355,7 +370,6 @@ async function getNFTTransfers(txHash) {
             ))
         );
 
-        console.log('Filtered transfers:', uniqueTransfers); // Debug log
         return uniqueTransfers;
     } catch (error) {
         console.error('Error fetching NFT transfers:', error);
