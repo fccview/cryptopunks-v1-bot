@@ -29,8 +29,9 @@ const MARKETPLACE_URLS = {
     'OpenSea (Legacy)': `https://opensea.io/assets/ethereum/${contract_address}/`
 }
 
-const WRAP_CONTRACT = '0x282BDD42f4eb70e7A9D9F40c8fEA0825B7f68C5D'.toLowerCase();
 const processedTxs = new Set();
+
+const provider = new ethers.providers.JsonRpcProvider(ALCHEMY_API_URL);
 
 async function startSalesTracking(client) {
     /** @todo Debug block for processing recent transactions. Uncomment for testing. */
@@ -80,7 +81,6 @@ async function processSaleLog(log, client) {
         try {
             const channel = await client.channels.fetch(discord_general_chat);
             if (from === '0x0000000000000000000000000000000000000000') {
-                console.log('Attempting to send wrap notification to Discord...');
                 const embed = new Discord.MessageEmbed()
                     .setColor('#00ff00')
                     .setTitle(`Punk #${tokenId} was just wrapped!!`)
@@ -100,23 +100,19 @@ async function processSaleLog(log, client) {
                 return;
             }
 
-            // Check if this is part of a marketplace transaction
             const txDetails = await getTransactionDetails(transactionHash);
             const isMarketplaceTx = Object.keys(MARKETPLACES).includes(txDetails.to.toLowerCase());
-            const priceInEth = await getTransactionValue(transactionHash);
+            const { value: price, currency } = await getTransactionValue(transactionHash);
 
-            if (isMarketplaceTx && parseInt(priceInEth) === 0) {
-                // Get all NFT transfers in this transaction
+            if (isMarketplaceTx) {
                 const transfers = await getNFTTransfers(transactionHash);
 
-                // Filter transfers to only include our contract
                 const relevantTransfers = transfers.filter(t =>
                     t.from.toLowerCase() !== '0x0000000000000000000000000000000000000000' &&
                     t.to.toLowerCase() !== '0x0000000000000000000000000000000000000000'
                 );
 
                 if (relevantTransfers.length > 1) {
-                    // This is a swap
                     const swapDetails = relevantTransfers.map(t => `#${t.tokenId}`).join(' ⇄ ');
                     const marketplace = MARKETPLACES[txDetails.to.toLowerCase()] || 'Unknown';
 
@@ -140,64 +136,60 @@ async function processSaleLog(log, client) {
                     } catch (error) {
                         console.error(error.stack);
                     }
-                    return; // Important: return here to prevent listing notification
-                }
+                    return;
+                } else if (parseFloat(price) > 0) {
+                    const marketplace = MARKETPLACES[txDetails.to.toLowerCase()];
+                    const url = MARKETPLACE_URLS[marketplace] || MARKETPLACE_URLS['Blur'];
+                    const tweetText = encodeURIComponent(`Punk #${tokenId} was just sold for ${price} ${currency} on ${marketplace}! 🎉\n\nView: ${url}${tokenId}`);
+                    const tweetUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
 
-                // This is a listing
-                const marketplace = MARKETPLACES[txDetails.to.toLowerCase()];
-                const url = MARKETPLACE_URLS[marketplace] || MARKETPLACE_URLS['Blur'];
+                    const embed = new Discord.MessageEmbed()
+                        .setColor('#0099ff')
+                        .setTitle(`Punk #${tokenId} was just sold for ${price}${currency}`)
+                        .addFields(
+                            { name: 'Token ID', value: tokenId, inline: true },
+                            { name: 'Buyer', value: `${to.slice(0, 4)}...${to.slice(-4)}`, inline: true },
+                            { name: 'Sale', value: `[${marketplace}](${url}${tokenId})` },
+                            { name: 'Transaction', value: `[View on Etherscan](https://etherscan.io/tx/${transactionHash})` }
+                        )
+                        .setFooter({ text: `Marketplace: ${marketplace}` })
+                        .setThumbnail(`https://ipfs.io/ipfs/QmbuBFTZe5ygELZhRtQkpM3NW8nVXxRUNK9W2XFbAXtPLV/${tokenId}.png`)
+                        .setTimestamp();
 
-                const embed = new Discord.MessageEmbed()
-                    .setColor('#FFA500')
-                    .setTitle(`Punk #${tokenId} was just listed!`)
-                    .addFields(
-                        { name: 'Token ID', value: tokenId, inline: true },
-                        { name: 'Seller', value: `${from.slice(0, 4)}...${from.slice(-4)}`, inline: true },
-                        { name: 'Marketplace', value: marketplace, inline: true },
-                        { name: 'View listing', value: `[${marketplace}](${url}${tokenId})` }
-                    )
-                    .setThumbnail(`https://ipfs.io/ipfs/QmbuBFTZe5ygELZhRtQkpM3NW8nVXxRUNK9W2XFbAXtPLV/${tokenId}.png`)
-                    .setTimestamp();
+                    const row = new Discord.MessageActionRow()
+                        .addComponents(
+                            new Discord.MessageButton()
+                                .setLabel('Tweet this sale 🐦')
+                                .setStyle('LINK')
+                                .setURL(tweetUrl)
+                        );
 
-                try {
-                    await channel.send({ embeds: [embed] });
-                } catch (error) {
-                    console.error(error.stack);
-                }
-                return;
-            }
+                    try {
+                        await channel.send({ embeds: [embed], components: [row] });
+                    } catch (error) {
+                        console.error(error.stack);
+                    }
+                } else {
+                    const marketplace = MARKETPLACES[txDetails.to.toLowerCase()];
+                    const url = MARKETPLACE_URLS[marketplace] || MARKETPLACE_URLS['Blur'];
 
-            if (parseInt(priceInEth) > 0) {
-                const marketplace = await getMarketplace(transactionHash);
-                const url = MARKETPLACE_URLS[marketplace] || MARKETPLACE_URLS['Blur'];
-                const tweetText = encodeURIComponent(`Punk #${tokenId} was just sold for ${priceInEth} ETH on ${marketplace}! 🎉\n\nView: ${url}${tokenId}`);
-                const tweetUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
+                    const embed = new Discord.MessageEmbed()
+                        .setColor('#FFA500')
+                        .setTitle(`Punk #${tokenId} was just listed!`)
+                        .addFields(
+                            { name: 'Token ID', value: tokenId, inline: true },
+                            { name: 'Seller', value: `${from.slice(0, 4)}...${from.slice(-4)}`, inline: true },
+                            { name: 'Marketplace', value: marketplace, inline: true },
+                            { name: 'View listing', value: `[${marketplace}](${url}${tokenId})` }
+                        )
+                        .setThumbnail(`https://ipfs.io/ipfs/QmbuBFTZe5ygELZhRtQkpM3NW8nVXxRUNK9W2XFbAXtPLV/${tokenId}.png`)
+                        .setTimestamp();
 
-                const embed = new Discord.MessageEmbed()
-                    .setColor('#0099ff')
-                    .setTitle(`Punk #${tokenId} was just sold for ${priceInEth} ETH`)
-                    .addFields(
-                        { name: 'Token ID', value: tokenId, inline: true },
-                        { name: 'Buyer', value: `${to.slice(0, 4)}...${to.slice(-4)}`, inline: true },
-                        { name: 'Sale', value: `[${marketplace}](${url}${tokenId})` },
-                        { name: 'Transaction', value: `[View on Etherscan](https://etherscan.io/tx/${transactionHash})` }
-                    )
-                    .setFooter({ text: `Marketplace: ${marketplace}` })
-                    .setThumbnail(`https://ipfs.io/ipfs/QmbuBFTZe5ygELZhRtQkpM3NW8nVXxRUNK9W2XFbAXtPLV/${tokenId}.png`)
-                    .setTimestamp();
-
-                const row = new Discord.MessageActionRow()
-                    .addComponents(
-                        new Discord.MessageButton()
-                            .setLabel('Tweet this sale 🐦')
-                            .setStyle('LINK')
-                            .setURL(tweetUrl)
-                    );
-
-                try {
-                    await channel.send({ embeds: [embed], components: [row] });
-                } catch (error) {
-                    console.error(error.stack);
+                    try {
+                        await channel.send({ embeds: [embed] });
+                    } catch (error) {
+                        console.error(error.stack);
+                    }
                 }
             }
         } catch (error) {
@@ -263,7 +255,7 @@ async function getMarketplace(txHash) {
 /*
 async function fetchRecentSales() {
     const currentBlock = await getCurrentBlockNumber();
-    const blockRange = 5000;
+    const blockRange = 30000;
 
     const response = await axios.post(ALCHEMY_API_URL, {
         jsonrpc: '2.0',
@@ -291,36 +283,9 @@ async function fetchRecentSales() {
 }
 */
 
-async function getTransactionValue(txHash) {
-    try {
-        const response = await axios.post(ALCHEMY_API_URL, {
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'eth_getTransactionByHash',
-            params: [txHash]
-        });
-
-        const tx = response.data.result;
-        if (!tx) {
-            console.error('Transaction not found:', txHash);
-            return 'Unknown';
-        }
-
-        // Convert wei to ETH and format to 2 decimal places
-        const priceInWei = ethers.BigNumber.from(tx.value);
-        const priceInEth = ethers.utils.formatEther(priceInWei);
-        return Number(priceInEth).toFixed(2);
-    } catch (error) {
-        console.error('Error fetching transaction value:', error);
-        return 'Unknown';
-    }
-}
-
-
 setInterval(() => {
     processedTxs.clear();
 }, 3600000); // Clear every hour
-
 
 async function getTransactionDetails(txHash) {
     const response = await axios.post(ALCHEMY_API_URL, {
@@ -331,7 +296,6 @@ async function getTransactionDetails(txHash) {
     });
     return response.data.result;
 }
-
 
 async function getNFTTransfers(txHash) {
     try {
@@ -350,8 +314,6 @@ async function getNFTTransfers(txHash) {
                 topics: [TRANSFER_EVENT_TOPIC]
             }]
         });
-
-        console.log('Transfer logs:', response.data.result); // Debug log
 
         const transfers = response.data.result
             .filter(log => log.topics.length === 4)
@@ -374,6 +336,104 @@ async function getNFTTransfers(txHash) {
     } catch (error) {
         console.error('Error fetching NFT transfers:', error);
         return [];
+    }
+}
+
+async function getTransactionValue(txHash) {
+    try {
+        // Get the transaction receipt
+        const response = await axios.post(ALCHEMY_API_URL, {
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'eth_getTransactionReceipt',
+            params: [txHash]
+        });
+
+        const receipt = response.data.result;
+
+        // Get transaction details to get the from and to addresses
+        const txDetails = await getTransactionDetails(txHash);
+        const txFrom = txDetails.from.toLowerCase();
+
+        // First, identify the NFT transfer
+        let nftTransfer;
+        for (const log of receipt.logs) {
+            if (log.address.toLowerCase() === contract_address.toLowerCase()) {
+                // Check if this is an ERC-721 Transfer event
+                if (log.topics[0].toLowerCase() === TRANSFER_EVENT_TOPIC.toLowerCase() && log.topics.length === 4) {
+                    const from = '0x' + log.topics[1].slice(26);
+                    const to = '0x' + log.topics[2].slice(26);
+                    const tokenId = ethers.BigNumber.from(log.topics[3]).toString();
+                    nftTransfer = { from: from.toLowerCase(), to: to.toLowerCase(), tokenId };
+                    break; // Assuming only one NFT transfer per transaction
+                }
+            }
+        }
+
+        if (!nftTransfer) {
+            return { value: '0', currency: 'ETH' };
+        }
+
+        let paymentValue = ethers.BigNumber.from(0);
+        let currency = 'ETH';
+        let decimals = 18;
+
+        for (const log of receipt.logs) {
+            const tokenAddress = log.address.toLowerCase();
+            if (log.topics[0].toLowerCase() === TRANSFER_EVENT_TOPIC.toLowerCase() && log.topics.length === 3) {
+                const from = '0x' + log.topics[1].slice(26);
+                const to = '0x' + log.topics[2].slice(26);
+                const value = ethers.BigNumber.from(log.data);
+
+                if (from.toLowerCase() === nftTransfer.to && to.toLowerCase() === nftTransfer.from) {
+                    const tokenSymbol = await getTokenSymbol(tokenAddress);
+                    decimals = await getTokenDecimals(tokenAddress);
+
+                    paymentValue = value;
+                    currency = tokenSymbol;
+                    break; 
+                }
+            }
+        }
+
+        const ethValue = ethers.BigNumber.from(txDetails.value || '0');
+        if (ethValue.gt(0)) {
+            paymentValue = ethValue;
+            currency = 'ETH';
+            decimals = 18;
+        }
+
+        if (paymentValue.gt(0)) {
+            const formattedValue = ethers.utils.formatUnits(paymentValue, decimals);
+            return { value: Number(formattedValue).toFixed(2), currency };
+        } else {
+            // No payment transfer found
+            return { value: '0', currency: 'ETH' };
+        }
+
+    } catch (error) {
+        console.error('Error fetching transaction value:', error);
+        return { value: 'Unknown', currency: 'Unknown' };
+    }
+}
+
+async function getTokenSymbol(tokenAddress) {
+    try {
+        const tokenContract = new ethers.Contract(tokenAddress, ['function symbol() view returns (string)'], provider);
+        return await tokenContract.symbol();
+    } catch (error) {
+        console.error(`Error fetching token symbol for ${tokenAddress}:`, error);
+        return 'Unknown';
+    }
+}
+
+async function getTokenDecimals(tokenAddress) {
+    try {
+        const tokenContract = new ethers.Contract(tokenAddress, ['function decimals() view returns (uint8)'], provider);
+        return await tokenContract.decimals();
+    } catch (error) {
+        console.error(`Error fetching token decimals for ${tokenAddress}:`, error);
+        return 18;
     }
 }
 
