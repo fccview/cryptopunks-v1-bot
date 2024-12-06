@@ -1,9 +1,9 @@
 const axios = require('axios');
 const Discord = require('discord.js');
 const ethers = require('ethers');
-const { contract_address, alchemy_api_key, discord_general_chat } = require('../config.json');
+const { contract_address, alchemy_api_key, discord_general_chat, discord_wraps_channel, discord_sales_channel } = require('../config.json');
 
-/** @todo Set the Discord channel ID here for debugging. */
+/** Set the Discord channel ID here for debugging. */
 // const discord_general_chat = `932316690816073729`;
 
 const ALCHEMY_API_URL = `https://eth-mainnet.g.alchemy.com/v2/${alchemy_api_key}`;
@@ -34,7 +34,9 @@ const processedTxs = new Set();
 const provider = new ethers.providers.JsonRpcProvider(ALCHEMY_API_URL);
 
 async function startSalesTracking(client) {
-    /** @todo Debug block for processing recent transactions. Uncomment for testing. */
+    /**
+     * Debug block for processing recent transactions. Uncomment for testing.
+     */
     /*
     try {
         console.log('Fetching recent sales...');
@@ -65,6 +67,40 @@ async function startSalesTracking(client) {
     }, 60000);
 }
 
+/**
+ * Debug function for processing recent transactions. Uncomment for testing.
+ */
+/*
+async function fetchRecentSales() {
+    const currentBlock = await getCurrentBlockNumber();
+    const blockRange = 30000;
+
+    const response = await axios.post(ALCHEMY_API_URL, {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'eth_getLogs',
+        params: [{
+            fromBlock: ethers.utils.hexValue(currentBlock - blockRange),
+            toBlock: 'latest',
+            address: WRAP_CONTRACT,
+            topics: [TRANSFER_EVENT_TOPIC]
+        }]
+    });
+
+    const logs = response.data.result;
+    console.log(`Found ${logs.length} total events`);
+
+    // Get the last 10 events
+    const recentLogs = logs.slice(-10);
+    console.log(`Processing last ${recentLogs.length} events:`);
+    recentLogs.forEach(log => {
+        console.log(`- Transaction hash: ${log.transactionHash}`);
+    });
+
+    return recentLogs;
+}
+*/
+
 async function processSaleLog(log, client) {
     const { topics, transactionHash, address } = log;
 
@@ -80,6 +116,9 @@ async function processSaleLog(log, client) {
         processedTxs.add(transactionHash);
         try {
             const channel = await client.channels.fetch(discord_general_chat);
+            const wrapsChannel = await client.channels.fetch(discord_wraps_channel);
+            const salesChannel = await client.channels.fetch(discord_sales_channel);
+
             if (from === '0x0000000000000000000000000000000000000000') {
                 const embed = new Discord.MessageEmbed()
                     .setColor('#00ff00')
@@ -94,6 +133,7 @@ async function processSaleLog(log, client) {
 
                 try {
                     await channel.send({ embeds: [embed] });
+                    await wrapsChannel.send({ embeds: [embed] });
                 } catch (error) {
                     console.error(error.stack);
                 }
@@ -133,6 +173,7 @@ async function processSaleLog(log, client) {
 
                     try {
                         await channel.send({ embeds: [embed] });
+                        await salesChannel.send({ embeds: [embed] });
                     } catch (error) {
                         console.error(error.stack);
                     }
@@ -166,27 +207,7 @@ async function processSaleLog(log, client) {
 
                     try {
                         await channel.send({ embeds: [embed], components: [row] });
-                    } catch (error) {
-                        console.error(error.stack);
-                    }
-                } else {
-                    const marketplace = MARKETPLACES[txDetails.to.toLowerCase()];
-                    const url = MARKETPLACE_URLS[marketplace] || MARKETPLACE_URLS['Blur'];
-
-                    const embed = new Discord.MessageEmbed()
-                        .setColor('#FFA500')
-                        .setTitle(`Punk #${tokenId} was just listed!`)
-                        .addFields(
-                            { name: 'Token ID', value: tokenId, inline: true },
-                            { name: 'Seller', value: `${from.slice(0, 4)}...${from.slice(-4)}`, inline: true },
-                            { name: 'Marketplace', value: marketplace, inline: true },
-                            { name: 'View listing', value: `[${marketplace}](${url}${tokenId})` }
-                        )
-                        .setThumbnail(`https://ipfs.io/ipfs/QmbuBFTZe5ygELZhRtQkpM3NW8nVXxRUNK9W2XFbAXtPLV/${tokenId}.png`)
-                        .setTimestamp();
-
-                    try {
-                        await channel.send({ embeds: [embed] });
+                        await salesChannel.send({ embeds: [embed], components: [row] });
                     } catch (error) {
                         console.error(error.stack);
                     }
@@ -226,66 +247,6 @@ async function getCurrentBlockNumber() {
 
     return parseInt(response.data.result, 16);
 }
-
-async function getMarketplace(txHash) {
-    try {
-        const response = await axios.post(ALCHEMY_API_URL, {
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'eth_getTransactionByHash',
-            params: [txHash]
-        });
-
-        const tx = response.data.result;
-        if (!tx) {
-            console.error('Transaction not found:', txHash);
-            return 'Unknown';
-        }
-
-        // Check if the transaction interacted with a known marketplace contract
-        const marketplace = MARKETPLACES[tx.to.toLowerCase()];
-        return marketplace || `${tx.to.slice(0, 4)}...${tx.to.slice(-4)}`;
-    } catch (error) {
-        console.error('Error fetching transaction:', error);
-        return 'Unknown';
-    }
-}
-
-/** @todo Debug function for processing recent transactions. Uncomment for testing. */
-/*
-async function fetchRecentSales() {
-    const currentBlock = await getCurrentBlockNumber();
-    const blockRange = 30000;
-
-    const response = await axios.post(ALCHEMY_API_URL, {
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'eth_getLogs',
-        params: [{
-            fromBlock: ethers.utils.hexValue(currentBlock - blockRange),
-            toBlock: 'latest',
-            address: WRAP_CONTRACT,
-            topics: [TRANSFER_EVENT_TOPIC]
-        }]
-    });
-
-    const logs = response.data.result;
-    console.log(`Found ${logs.length} total events`);
-
-    // Get the last 10 events
-    const recentLogs = logs.slice(-10);
-    console.log(`Processing last ${recentLogs.length} events:`);
-    recentLogs.forEach(log => {
-        console.log(`- Transaction hash: ${log.transactionHash}`);
-    });
-
-    return recentLogs;
-}
-*/
-
-setInterval(() => {
-    processedTxs.clear();
-}, 3600000); // Clear every hour
 
 async function getTransactionDetails(txHash) {
     const response = await axios.post(ALCHEMY_API_URL, {
@@ -341,7 +302,6 @@ async function getNFTTransfers(txHash) {
 
 async function getTransactionValue(txHash) {
     try {
-        // Get the transaction receipt
         const response = await axios.post(ALCHEMY_API_URL, {
             jsonrpc: '2.0',
             id: 1,
@@ -350,22 +310,17 @@ async function getTransactionValue(txHash) {
         });
 
         const receipt = response.data.result;
-
-        // Get transaction details to get the from and to addresses
         const txDetails = await getTransactionDetails(txHash);
-        const txFrom = txDetails.from.toLowerCase();
-
-        // First, identify the NFT transfer
         let nftTransfer;
+
         for (const log of receipt.logs) {
             if (log.address.toLowerCase() === contract_address.toLowerCase()) {
-                // Check if this is an ERC-721 Transfer event
                 if (log.topics[0].toLowerCase() === TRANSFER_EVENT_TOPIC.toLowerCase() && log.topics.length === 4) {
                     const from = '0x' + log.topics[1].slice(26);
                     const to = '0x' + log.topics[2].slice(26);
                     const tokenId = ethers.BigNumber.from(log.topics[3]).toString();
                     nftTransfer = { from: from.toLowerCase(), to: to.toLowerCase(), tokenId };
-                    break; // Assuming only one NFT transfer per transaction
+                    break;
                 }
             }
         }
@@ -391,7 +346,7 @@ async function getTransactionValue(txHash) {
 
                     paymentValue = value;
                     currency = tokenSymbol;
-                    break; 
+                    break;
                 }
             }
         }
@@ -407,7 +362,6 @@ async function getTransactionValue(txHash) {
             const formattedValue = ethers.utils.formatUnits(paymentValue, decimals);
             return { value: Number(formattedValue).toFixed(2), currency };
         } else {
-            // No payment transfer found
             return { value: '0', currency: 'ETH' };
         }
 
@@ -436,5 +390,9 @@ async function getTokenDecimals(tokenAddress) {
         return 18;
     }
 }
+
+setInterval(() => {
+    processedTxs.clear();
+}, 3600000);
 
 module.exports = { startSalesTracking };
