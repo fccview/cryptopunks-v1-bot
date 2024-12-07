@@ -1,84 +1,62 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
+const Discord = require('discord.js');
 const fetch = require('node-fetch');
-const Discord = require("discord.js");
-const ethers = require('ethers');
-const { contract_address, collection_slug, os_api_key } = require('../config.json');
+const { rarible_api_key, contract_address } = require('../config.json');
+
+async function getStats() {
+    const collection = encodeURIComponent(`ETHEREUM:${contract_address.toLowerCase()}`);
+    const url = `https://api.rarible.org/v0.1/data/collections/${collection}/stats?currency=ETH`;
+
+    const res = await fetch(url, {
+        headers: {
+            'x-api-key': rarible_api_key
+        }
+    });
+
+    const data = await res.json();
+    return data;
+}
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('stats')
-        .setDescription(`Shows v1 Punks Stats on OS/LR`),
-
-    getOSStats: async function(url) {
-        let options = {
-            method: 'GET',
-            headers: {Accept: 'application/json', 'X-API-KEY': os_api_key}
-        };
-
-        let osStats = await fetch(url, options)
-            .then(res => res.json())
-            .then(
-                json => {
-                    return json.stats;
-                }
-            ).catch(err => {
-                console.error('error:' + err);
-            });
-
-        return osStats;
-    },
-
-    getLRStats: async function(url) {
-        let LRoptions = {
-            method: 'GET'
-        };
-        let LRStats = await fetch(url, LRoptions)
-            .then(res => res.json())
-            .then(
-                json => {
-                    return json.data;
-                }
-            ).catch(err => {
-                console.error('error:' +err);
-            });
-
-        return LRStats;
-    },
-
+        .setDescription('Shows the cheapest V1 Punk listing using the Rarible aggregator API'),
     async execute(interaction) {
-        let collection = interaction.options.getString('collection');
-        let osUrl = ``;
-        let lrUrl = ``;
+        await interaction.deferReply();
+        try {
+            const stats = await getStats();
 
-        osUrl = `https://api.opensea.io/api/v1/collection/${collection_slug}/stats`;
-        lrUrl = `https://api.looksrare.org/api/v1/collections/stats?address=${contract_address}`
+            if (!stats) {
+                await interaction.editReply('No stats found for V1 Punks.');
+                return;
+            }
 
-        let OSStats = await this.getOSStats(osUrl);
-        let LRStats = await this.getLRStats(lrUrl);
+            const {
+                highestSale,
+                floorPrice,
+                marketCap,
+                listed,
+                items,
+                owners,
+                volume
+            } = stats;
 
-        let OSfloor = OSStats.floor_price;
-        let OSholders = OSStats.num_owners;
-        let OSaverage = parseFloat(OSStats.average_price).toFixed(2);
+            const embed = new Discord.MessageEmbed()
+                .setTitle('V1 Punk Stats')
+                .addFields(
+                    { name: 'Floor Price', value: floorPrice ? `${floorPrice.toFixed(2)}ETH` : 'N/A', inline: true },
+                    { name: 'Market Cap', value: marketCap ? `${marketCap.toFixed(2)}ETH` : 'N/A', inline: true },
+                    { name: 'Highest Sale', value: highestSale ? `${highestSale.toFixed(2)}ETH` : 'N/A', inline: true },
+                    { name: 'Listed', value: listed?.toString() || '0', inline: true },
+                    { name: 'Wrapped', value: items?.toString() || '0', inline: true },
+                    { name: 'Owners', value: owners?.toString() || '0', inline: true },
+                    { name: 'Volume', value: volume ? `${volume.toFixed(2)} ETH` : 'N/A', inline: true }
+                )
+                .setTimestamp();
 
-        let usercard = new Discord.MessageEmbed()
-            .setTitle(`${collection} stats`)
-            .setColor('RANDOM')
-            .addFields({
-                    name: `Opensea`,
-                    value: `**Floor:** ${OSfloor}${ethers.constants.EtherSymbol}                           
-                            **Average Price:** ${OSaverage}${ethers.constants.EtherSymbol}`,
-                    inline: true
-                }, {
-                    name: `LooksRare`,
-                    value: `**Floor:** ${parseFloat(parseInt(LRStats.floorPrice)/1000000000000000000).toFixed(2)}${ethers.constants.EtherSymbol}                            
-                            **Average Price:** ${parseFloat(parseInt(LRStats.averageAll)/1000000000000000000).toFixed(2)}${ethers.constants.EtherSymbol}`,
-                    inline: true
-                },
-                {
-                    name: `Unique Holders`,
-                    value: `${OSholders} \n`,
-                });
-
-        return interaction.reply({embeds: [usercard]});
-    },
+            await interaction.editReply({ embeds: [embed] });
+        } catch (error) {
+            await interaction.editReply('Error fetching cheapest listing. Please try again later.');
+        }
+    }
 };
