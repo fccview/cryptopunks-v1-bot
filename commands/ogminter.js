@@ -3,7 +3,17 @@ const ethers = require('ethers');
 const Discord = require('discord.js');
 const NodeCache = require('node-cache');
 const mintCache = new NodeCache({ stdTTL: 86400 });
-const { infura_key } = require('../config.json');
+
+async function getEnsName(address, publicProvider) {
+    try {
+        const ensName = await publicProvider.lookupAddress(address);
+        return ensName || null;
+    } catch (error) {
+        console.error('Error fetching ENS name:', error);
+        return null;
+    }
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('ogminter')
@@ -81,14 +91,22 @@ module.exports = {
                 if (event[i].hasOwnProperty('args')) {
                     if (parseInt(event[i].args['punkIndex']) === parseInt(punk)) {
                         let toAddress = event[i].args['to'];
+                        let ensName = await getEnsName(toAddress, provider);
                         let txHash = "https://etherscan.io/tx/" + event[i].transactionHash;
+                        const block = await provider.getBlock(event[i].blockNumber);
+                        const mintDate = new Date(block.timestamp * 1000).toLocaleDateString();
+
                         usercard = new Discord.MessageEmbed()
                             .setTitle(`Punk #${event[i].args['punkIndex']}`)
                             .setColor('RANDOM')
                             .addFields({
                                 name: `OG Minter`,
-                                value: toAddress,
-                                inline: false
+                                value: ensName || toAddress,
+                                inline: true
+                            }, {
+                                name: `Mint Date`,
+                                value: mintDate,
+                                inline: true
                             }, {
                                 name: `Tx Hash`,
                                 value: txHash,

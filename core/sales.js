@@ -2,9 +2,10 @@ const axios = require('axios');
 const Discord = require('discord.js');
 const ethers = require('ethers');
 const { contract_address, alchemy_api_key, discord_general_chat, discord_wraps_channel, discord_sales_channel } = require('../config.json');
-
 /** Set the Discord channel ID here for debugging. */
 // const discord_general_chat = `932316690816073729`;
+// const discord_wraps_channel = `932316690816073729`;
+// const discord_sales_channel = `932316690816073729`;
 
 const ALCHEMY_API_URL = `https://eth-mainnet.g.alchemy.com/v2/${alchemy_api_key}`;
 const TRANSFER_EVENT_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
@@ -32,6 +33,7 @@ const MARKETPLACE_URLS = {
 const processedTxs = new Set();
 
 const provider = new ethers.providers.JsonRpcProvider(ALCHEMY_API_URL);
+const publicProvider = new ethers.providers.JsonRpcProvider('https://eth.public-rpc.com');
 
 async function startSalesTracking(client) {
     /**
@@ -73,7 +75,7 @@ async function startSalesTracking(client) {
 /*
 async function fetchRecentSales() {
     const currentBlock = await getCurrentBlockNumber();
-    const blockRange = 30000;
+    const blockRange = 50000;
 
     const response = await axios.post(ALCHEMY_API_URL, {
         jsonrpc: '2.0',
@@ -82,7 +84,7 @@ async function fetchRecentSales() {
         params: [{
             fromBlock: ethers.utils.hexValue(currentBlock - blockRange),
             toBlock: 'latest',
-            address: WRAP_CONTRACT,
+            address: contract_address,
             topics: [TRANSFER_EVENT_TOPIC]
         }]
     });
@@ -91,7 +93,7 @@ async function fetchRecentSales() {
     console.log(`Found ${logs.length} total events`);
 
     // Get the last 10 events
-    const recentLogs = logs.slice(-10);
+    const recentLogs = logs.slice(-50);
     console.log(`Processing last ${recentLogs.length} events:`);
     recentLogs.forEach(log => {
         console.log(`- Transaction hash: ${log.transactionHash}`);
@@ -184,12 +186,15 @@ async function processSaleLog(log, client) {
                     const tweetText = encodeURIComponent(`Punk #${tokenId} was just sold for ${price} ${currency} on ${marketplace}! 🎉\n\nView: ${url}${tokenId}`);
                     const tweetUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
 
+                    const buyerEns = await getEnsName(to);
+                    const buyerDisplay = buyerEns || `${to.slice(0, 4)}...${to.slice(-4)}`;
+
                     const embed = new Discord.MessageEmbed()
                         .setColor('#0099ff')
                         .setTitle(`Punk #${tokenId} was just sold for ${price}${currency}`)
                         .addFields(
                             { name: 'Token ID', value: tokenId, inline: true },
-                            { name: 'Buyer', value: `${to.slice(0, 4)}...${to.slice(-4)}`, inline: true },
+                            { name: 'Buyer', value: buyerDisplay, inline: true },
                             { name: 'Sale', value: `[${marketplace}](${url}${tokenId})` },
                             { name: 'Transaction', value: `[View on Etherscan](https://etherscan.io/tx/${transactionHash})` }
                         )
@@ -208,6 +213,7 @@ async function processSaleLog(log, client) {
                     try {
                         await channel.send({ embeds: [embed], components: [row] });
                         await salesChannel.send({ embeds: [embed], components: [row] });
+                        return;
                     } catch (error) {
                         console.error(error.stack);
                     }
@@ -388,6 +394,16 @@ async function getTokenDecimals(tokenAddress) {
     } catch (error) {
         console.error(`Error fetching token decimals for ${tokenAddress}:`, error);
         return 18;
+    }
+}
+
+async function getEnsName(address) {
+    try {
+        const ensName = await publicProvider.lookupAddress(address);
+        return ensName || null;
+    } catch (error) {
+        console.error('Error fetching ENS name:', error);
+        return null;
     }
 }
 
