@@ -144,7 +144,6 @@ async function processSaleLog(log, client) {
 
             const txDetails = await getTransactionDetails(transactionHash);
             const isMarketplaceTx = Object.keys(MARKETPLACES).includes(txDetails.to.toLowerCase());
-            const { value: price, currency } = await getTransactionValue(transactionHash);
 
             if (isMarketplaceTx) {
                 const transfers = await getNFTTransfers(transactionHash);
@@ -180,43 +179,6 @@ async function processSaleLog(log, client) {
                         console.error(error.stack);
                     }
                     return;
-                } else if (parseFloat(price) > 0) {
-                    const marketplace = MARKETPLACES[txDetails.to.toLowerCase()];
-                    const url = MARKETPLACE_URLS[marketplace] || MARKETPLACE_URLS['Blur'];
-                    const tweetText = encodeURIComponent(`Punk #${tokenId} was just sold for ${price} ${currency} on ${marketplace}! 🎉\n\nView: ${url}${tokenId}`);
-                    const tweetUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
-
-                    const buyerEns = await getEnsName(to);
-                    const buyerDisplay = buyerEns || `${to.slice(0, 4)}...${to.slice(-4)}`;
-
-                    const embed = new Discord.MessageEmbed()
-                        .setColor('#0099ff')
-                        .setTitle(`Punk #${tokenId} was just sold for ${price}${currency}`)
-                        .addFields(
-                            { name: 'Token ID', value: tokenId, inline: true },
-                            { name: 'Buyer', value: buyerDisplay, inline: true },
-                            { name: 'Sale', value: `[${marketplace}](${url}${tokenId})` },
-                            { name: 'Transaction', value: `[View on Etherscan](https://etherscan.io/tx/${transactionHash})` }
-                        )
-                        .setFooter({ text: `Marketplace: ${marketplace}` })
-                        .setThumbnail(`https://ipfs.io/ipfs/QmbuBFTZe5ygELZhRtQkpM3NW8nVXxRUNK9W2XFbAXtPLV/${tokenId}.png`)
-                        .setTimestamp();
-
-                    const row = new Discord.MessageActionRow()
-                        .addComponents(
-                            new Discord.MessageButton()
-                                .setLabel('Tweet this sale 🐦')
-                                .setStyle('LINK')
-                                .setURL(tweetUrl)
-                        );
-
-                    try {
-                        await channel.send({ embeds: [embed], components: [row] });
-                        await salesChannel.send({ embeds: [embed], components: [row] });
-                        return;
-                    } catch (error) {
-                        console.error(error.stack);
-                    }
                 }
             }
         } catch (error) {
@@ -394,16 +356,6 @@ async function getTokenDecimals(tokenAddress) {
     } catch (error) {
         console.error(`Error fetching token decimals for ${tokenAddress}:`, error);
         return 18;
-    }
-}
-
-async function getEnsName(address) {
-    try {
-        const ensName = await publicProvider.lookupAddress(address);
-        return ensName || null;
-    } catch (error) {
-        console.error('Error fetching ENS name:', error);
-        return null;
     }
 }
 

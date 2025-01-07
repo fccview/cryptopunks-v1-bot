@@ -3,8 +3,8 @@ const { Client, Collection, Intents } = require('discord.js');
 const { token } = require('./config.json');
 const core = require('./core/core');
 const { discord_general_chat } = require('./config.json');
-const { startSalesTracking } = require('./core/sales');
-
+const { startSalesTracking } = require('./core/blockchainEvents');
+const { fetchSalesLogs, processSaleLog } = require('./core/osSales');
 const client = new Client({
     partials: ['MESSAGE', 'CHANNEL', 'REACTION'],
     intents: ['DIRECT_MESSAGES', 'DIRECT_MESSAGE_REACTIONS', 'GUILD_MESSAGES', 'GUILD_MESSAGE_REACTIONS', 'GUILDS']
@@ -18,15 +18,34 @@ for (const file of commandFiles) {
     client.commands.set(command.data.name, command);
 }
 
-client.once('ready', () => {
+let lastTimestamp = Date.now();
+
+client.once('ready', async () => {
     console.log('Ready!');
     client.user.setPresence({ activities: [{ name: `Type /help`, type: `PLAYING` }] });
     startSalesTracking(client);
 
-    const timer = 28800000;
+    /**
+     * Security protocol alert for users, every 8 hours
+     */
     setInterval(function () {
         core.safetyProtocol(client, discord_general_chat);
-    }, timer);
+    }, 28800000);
+
+    /**
+     * Fetch sales logs every 5 minutes
+     */
+    setInterval(async () => {
+        try {
+            const logs = await fetchSalesLogs(lastTimestamp);
+            for (const log of logs) {
+                await processSaleLog(log, client);
+            }
+            lastTimestamp = Date.now();
+        } catch (error) {
+            console.error('Error in polling sales:', error);
+        }
+    }, 300000);
 });
 
 client.on('interactionCreate', async interaction => {
