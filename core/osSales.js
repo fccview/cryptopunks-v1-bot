@@ -11,7 +11,7 @@ const fetchSalesLogs = async (lastTimestamp) => {
             'X-API-KEY': opensea_api_key
         },
         params: {
-            after: 1736155655000,
+            after: lastTimestamp,
             event_type: 'sale'
         }
     });
