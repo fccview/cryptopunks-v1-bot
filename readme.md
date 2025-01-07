@@ -25,12 +25,12 @@ ETH: 0xfe89834C92C399E720F457bB73fEa1EFe1D0e17D
   "contract_address": "CONTRACT_ADDRESS_HERE",
   "collection_slug": "COLLECTION_SLUG_HERE",
   "alchemy_api_key": "ALCHEMY_API_KEY_HERE",
-  "os_api_key": "OS_API_KEY_HERE",
+  "opensea_api_key": "OPENSEA_API_KEY_HERE",
   "etherscan_api_key": "ETHERSCAN_API_KEY_HERE",
   "rarible_api_key": "RARIBLE_API_KEY_HERE",
   "discord_general_chat": "DISCORD_GENERAL_CHAT_CHANNEL_ID_HERE",
   "discord_wraps_channel": "DISCORD_WRAPS_CHANNEL_ID_HERE",
-  "discord_sales_channel": "DISCORD_SALES_CHANNEL_ID_HERE"  
+  "discord_sales_channel": "DISCORD_SALES_CHANNEL_ID_HERE"
 }
 ```
 
