@@ -18,21 +18,11 @@ for (const file of commandFiles) {
     client.commands.set(command.data.name, command);
 }
 
-let lastTimestamp = Date.now();
 
 client.once('ready', async () => {
     console.log('Ready!');
     client.user.setPresence({ activities: [{ name: `Type /help`, type: `PLAYING` }] });
     startSalesTracking(client);
-
-    try {
-        const logs = await fetchSalesLogs();
-        for (const log of logs) {
-            await processSaleLog(log, client);
-        }
-    } catch (error) {
-        console.error('Error in polling sales:', error);
-    }
 
     /**
      * Security protocol alert for users, every 8 hours
@@ -46,7 +36,6 @@ client.once('ready', async () => {
      */
     setInterval(async () => {
         try {
-            console.log('fetching new sales');
             const logs = await fetchSalesLogs();
             for (const log of logs) {
                 await processSaleLog(log, client);
