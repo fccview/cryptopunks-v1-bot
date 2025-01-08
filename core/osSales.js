@@ -5,13 +5,16 @@ const ethers = require('ethers');
 const OPENSEA_API_URL = 'https://api.opensea.io/api/v2/events/collection/official-v1-punks';
 const { opensea_api_key, discord_general_chat, discord_sales_channel } = require('../config.json');
 
-const fetchSalesLogs = async (lastTimestamp) => {
+const fetchSalesLogs = async () => {
+    let seconds = 100000 ? parseInt(100000) / 1000 : 3600;
+    let afterTimestamp = Math.round(new Date().getTime() / 1000) - seconds;
+
     const response = await axios.get(OPENSEA_API_URL, {
         headers: {
             'X-API-KEY': opensea_api_key
         },
         params: {
-            after: lastTimestamp,
+            after: afterTimestamp,
             event_type: 'sale'
         }
     });
@@ -38,6 +41,7 @@ const processSaleLog = async (event, client) => {
             opensea_url,
             display_image_url
         },
+        closing_date,
         buyer,
         seller,
         payment: { quantity, symbol },
@@ -62,10 +66,10 @@ const processSaleLog = async (event, client) => {
             { name: 'Buyer', value: buyerDisplay, inline: true },
             { name: 'Seller', value: sellerDisplay, inline: true },
             { name: 'Sale', value: `[Check on OpenSea](${url})` },
-            { name: 'Transaction', value: `[View on Etherscan](https://etherscan.io/tx/${transactionHash})` }
+            { name: 'Transaction', value: `[View on Etherscan](https://etherscan.io/tx/${transactionHash})` },
         )
         .setThumbnail(display_image_url)
-        .setTimestamp();
+        .setFooter({ text: `Sale Date: ${new Date(closing_date * 1000).toLocaleString()}` });
 
     const tweetText = encodeURIComponent(`${name} was just sold for ${price} ${symbol}! ${url}`);
     const row = new Discord.MessageActionRow()
