@@ -102,5 +102,42 @@ module.exports = {
         } else {
             interaction.reply("Sorry, invalid command!");
         }
+    },
+
+    mergePunks: function(interaction, args, environment) {
+        let self = this;
+        if (args[0] && args[1]) {
+            let punk1 = args[0];
+            let punk2 = args[1];
+            
+            if (self.isNumeric(punk1) && self.isNumeric(punk2) && 
+                parseInt(punk1) <= 9999 && parseInt(punk2) <= 9999) {
+                
+                let url1 = __dirname.replace('core', '') + '/img/nobg/' + punk1 + '.png';
+                let url2 = __dirname.replace('core', '') + '/img/nobg/' + punk2 + '.png';
+                let bg = __dirname.replace('core', '') + '/img/layers/purple-bg.png';
+                let speech = __dirname.replace('core', '') + '/img/layers/speech-hearts.png';
+
+                mergeImages([
+                    {src: bg},
+                    {src: bg, x: 816},
+                    {src: url1},
+                    {src: url2, x: 816},
+                    {src: speech}
+                ], {
+                    Canvas: Canvas,
+                    Image: Image,
+                    width: 1632
+                }).then(b64 => {
+                    const sfbuff = new Buffer.from(b64.split(",")[1], "base64");
+                    const sfattach = new MessageAttachment(sfbuff, `${punk1}_${punk2}_love.png`);
+                    interaction.reply({files: [sfattach], ephemeral: false});
+                });
+            } else {
+                interaction.reply("Sorry, can't find one of those Punks");
+            }
+        } else {
+            interaction.reply("Sorry, invalid command!");
+        }
     }
 }
