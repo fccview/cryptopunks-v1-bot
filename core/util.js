@@ -118,20 +118,31 @@ module.exports = {
                 let bg = __dirname.replace('core', '') + '/img/layers/purple-bg.png';
                 let speech = __dirname.replace('core', '') + '/img/layers/speech-hearts.png';
 
-                mergeImages([
-                    {src: bg},
-                    {src: bg, x: 816},
-                    {src: url1},
-                    {src: url2, x: 816},
-                    {src: speech}
-                ], {
-                    Canvas: Canvas,
-                    Image: Image,
-                    width: 1632
-                }).then(b64 => {
-                    const sfbuff = new Buffer.from(b64.split(",")[1], "base64");
-                    const sfattach = new MessageAttachment(sfbuff, `${punk1}_${punk2}_love.png`);
-                    interaction.reply({files: [sfattach], ephemeral: false});
+                // Read and flip the second punk
+                Jimp.read(url2).then(image => {
+                    image.flip(true, false)  // flip horizontal = true, vertical = false
+                        .getBuffer(Jimp.MIME_PNG, (err, flippedPunk) => {
+                            if (err) throw err;
+                            
+                            mergeImages([
+                                {src: bg},
+                                {src: bg, x: 816},
+                                {src: url1},
+                                {src: flippedPunk, x: 816},
+                                {src: speech}
+                            ], {
+                                Canvas: Canvas,
+                                Image: Image,
+                                width: 1632
+                            }).then(b64 => {
+                                const sfbuff = new Buffer.from(b64.split(",")[1], "base64");
+                                const sfattach = new MessageAttachment(sfbuff, `${punk1}_${punk2}_love.png`);
+                                interaction.reply({files: [sfattach], ephemeral: false});
+                            });
+                        });
+                }).catch(err => {
+                    console.error(err);
+                    interaction.reply("Sorry, there was an error processing the image");
                 });
             } else {
                 interaction.reply("Sorry, can't find one of those Punks");
