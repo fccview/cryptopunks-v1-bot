@@ -1,26 +1,24 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
-const fetch = require('node-fetch');
-const { rarible_api_key, contract_address } = require('../config.json');
+const axios = require('axios');
+const { opensea_api_key } = require('../config.json');
 
 async function getStats() {
-    const collection = encodeURIComponent(`ETHEREUM:${contract_address.toLowerCase()}`);
-    const url = `https://api.rarible.org/v0.1/data/collections/${collection}/stats?currency=ETH`;
-
-    const res = await fetch(url, {
+    const url = 'https://api.opensea.io/api/v2/collections/official-v1-punks/stats';
+    
+    const response = await axios.get(url, {
         headers: {
-            'x-api-key': rarible_api_key
+            'X-API-KEY': opensea_api_key
         }
     });
-
-    const data = await res.json();
-    return data;
+    
+    return response.data;
 }
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('stats')
-        .setDescription('Shows the cheapest V1 Punk listing using the Rarible aggregator API'),
+        .setDescription('Shows V1 Punk collection stats from OpenSea'),
     async execute(interaction) {
         await interaction.deferReply();
         try {
@@ -31,32 +29,34 @@ module.exports = {
                 return;
             }
 
-            const {
-                highestSale,
-                floorPrice,
-                marketCap,
-                listed,
-                items,
-                owners,
-                volume
-            } = stats;
+            const { total, intervals } = stats;
+            const dailyStats = intervals.find(i => i.interval === 'one_day');
+            const weeklyStats = intervals.find(i => i.interval === 'seven_day');
 
             const embed = new Discord.MessageEmbed()
                 .setTitle('V1 Punk Stats')
                 .addFields(
-                    { name: 'Floor Price', value: floorPrice ? `${floorPrice.toFixed(2)}ETH` : 'N/A', inline: true },
-                    { name: 'Market Cap', value: marketCap ? `${marketCap.toFixed(2)}ETH` : 'N/A', inline: true },
-                    { name: 'Highest Sale', value: highestSale ? `${highestSale.toFixed(2)}ETH` : 'N/A', inline: true },
-                    { name: 'Listed', value: listed?.toString() || '0', inline: true },
-                    { name: 'Wrapped', value: items?.toString() || '0', inline: true },
-                    { name: 'Owners', value: owners?.toString() || '0', inline: true },
-                    { name: 'Volume', value: volume ? `${volume.toFixed(2)} ETH` : 'N/A', inline: true }
+                    { name: 'Floor Price', value: `${total.floor_price.toFixed(2)} ${total.floor_price_symbol}`, inline: true },
+                    { name: 'Market Cap', value: `${total.market_cap.toFixed(2)} ETH`, inline: true },
+                    { name: 'Owners', value: total.num_owners.toString(), inline: true },
+                    { name: 'Total Volume', value: `${total.volume.toFixed(2)} ETH`, inline: true },
+                    { name: 'Total Sales', value: total.sales.toString(), inline: true },
+                    { name: 'Avg Price', value: `${total.average_price.toFixed(2)} ETH`, inline: true },
+                    { name: '\u200B', value: '**24h Stats**', inline: false },
+                    { name: 'Volume (24h)', value: `${dailyStats.volume.toFixed(2)} ETH`, inline: true },
+                    { name: 'Sales (24h)', value: dailyStats.sales.toString(), inline: true },
+                    { name: 'Avg Price (24h)', value: `${dailyStats.average_price.toFixed(2)} ETH`, inline: true },
+                    { name: '\u200B', value: '**7d Stats**', inline: false },
+                    { name: 'Volume (7d)', value: `${weeklyStats.volume.toFixed(2)} ETH`, inline: true },
+                    { name: 'Sales (7d)', value: weeklyStats.sales.toString(), inline: true },
+                    { name: 'Avg Price (7d)', value: `${weeklyStats.average_price.toFixed(2)} ETH`, inline: true }
                 )
                 .setTimestamp();
 
             await interaction.editReply({ embeds: [embed] });
         } catch (error) {
-            await interaction.editReply('Error fetching cheapest listing. Please try again later.');
+            console.error('Error fetching stats:', error);
+            await interaction.editReply('Error fetching stats. Please try again later.');
         }
     }
 };
