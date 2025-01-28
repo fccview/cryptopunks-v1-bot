@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageEmbed, MessageActionRow, MessageButton } = require('discord.js');
 const axios = require('axios');
-const { opensea_api_key } = require('../config.json');
+const { opensea_api_key, contract_address } = require('../config.json');
 
 async function getFloorListings() {
     const url = 'https://api.opensea.io/api/v2/listings/collection/official-v1-punks/best';
