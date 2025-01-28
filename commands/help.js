@@ -8,23 +8,32 @@ module.exports = {
 
     async execute(interaction) {
         let help = new Discord.MessageEmbed()
-            .setTitle('How To')
-            .setDescription("List of commands")
+            .setTitle('V1 Punk Bot Commands & Features')
+            .setDescription("Complete list of commands and automated features")
             .setColor('RANDOM')
             .setThumbnail(interaction.member.avatarURL())
             .addFields(
+                {name: 'Market Commands', value:
+                    "`/floor` - Shows the 10 lowest priced V1 Punks\n" +
+                    "`/sniper` - Shows the top 100 floor listings\n" +
+                    "`/stats` - Shows V1 collection stats on OpenSea\n" +
+                    "`/gas` - Shows current gas price\n" +
+                    "`/ethprice` - Shows ETH price in USD/GBP/EUR"
+                },
+                {name: 'Punk Commands', value:
+                    "`/punk` - Shows a V1 Punk with custom background\n" +
+                    "`/gm` - Sends a special punk GM message\n" +
+                    "`/love` - Shows two punks in love"
+                },
                 {name: 'Information Commands', value:
-                        "`/help` - Shows this help message" +
-                        "\n`/ogminter` - Shows the original v1 Punk minter" +
-                        "\n`/gas` - Shows current gas price" +
-                        "\n`/info` - Shows CryptoPunks V1 infos"+
-                        "\n`/stats` - Shows v1 stats on OS/LR" +
-                        "\n`/ethprice` - Shows current ETH price against USD/GBP/EUR"
+                    "`/help` - Shows this help message\n" +
+                    "`/info` - Learn about V1 Punks (Wiki, How to Wrap/Unwrap)\n" +
+                    "`/ogminter` - Shows the original V1 Punk minter"
                 },
-                {name: 'Fun Commands', value: "" +
-                        "`/gm` - Sends a special punk GM message" +
-                        "\n`/punk` - Sends a V1 Punk image"
-                },
+                {name: '🤖 Automated Features', value:
+                    "• Real-time sales tracking from OpenSea\n" +
+                    "• Periodic security alerts (every 8 hours)"
+                }
             );
 
         return interaction.reply({embeds: [help], ephemeral: true});
