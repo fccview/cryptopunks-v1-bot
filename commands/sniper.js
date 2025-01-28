@@ -20,7 +20,7 @@ async function getFloorListings() {
 }
 
 function createEmbed(listings, page) {
-    const itemsPerPage = 10;
+    const itemsPerPage = 5;
     const start = (page - 1) * itemsPerPage;
     const end = start + itemsPerPage;
     const pageListings = listings.slice(start, end);
