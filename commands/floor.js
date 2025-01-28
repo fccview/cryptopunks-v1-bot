@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageEmbed, MessageActionRow, MessageButton } = require('discord.js');
 const axios = require('axios');
-const { opensea_api_key } = require('../config.json');
+const { opensea_api_key, contract_address } = require('../config.json');
 
 async function getFloorListings() {
     const url = 'https://api.opensea.io/api/v2/listings/collection/official-v1-punks/best';
@@ -31,15 +31,21 @@ function createEmbed(listings, page) {
         .setTimestamp();
 
     pageListings.forEach((listing, index) => {
-        const { price: { current: { value, currency } }, nft } = listing;
-        const priceInEth = (parseInt(value) / 1e18).toFixed(3);
+        const { 
+            price: { current: { value, currency } },
+            protocol_data: { parameters: { offer } }
+        } = listing;
         
-        embed.addField(
-            `${index + start + 1}. V1 Punk #${nft.identifier}`,
-            `💰 ${priceInEth} ${currency}\n` +
-            `[View on OpenSea](${nft.opensea_url})`,
-            false
-        );
+        const tokenId = offer[0].identifierOrCriteria;
+        const priceInEth = (parseInt(value) / 1e18).toFixed(3);
+        const osUrl = `https://opensea.io/assets/ethereum/${contract_address}/${tokenId}`;
+        
+        embed.addFields({
+            name: `${index + start + 1}. V1 Punk #${tokenId}`,
+            value: `${priceInEth} ${currency}\n` +
+            `[View on OpenSea](${osUrl})`,
+            inline: false
+        });
     });
 
     return embed;
