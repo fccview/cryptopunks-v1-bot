@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageEmbed, MessageActionRow, MessageButton } = require('discord.js');
 const axios = require('axios');
-const { opensea_api_key } = require('../config.json');
+const { opensea_api_key, contract_address } = require('../config.json');
 
 async function getFloorListings() {
     const url = 'https://api.opensea.io/api/v2/listings/collection/official-v1-punks/best';
@@ -12,7 +12,7 @@ async function getFloorListings() {
         },
         params: {
             include_private_listings: false,
-            limit: 10
+            limit: 100
         }
     });
     
@@ -20,32 +20,33 @@ async function getFloorListings() {
 }
 
 function createEmbed(listings, page) {
-    const listing = listings[page - 1];
-    const { 
-        price: { current: { value, currency } },
-        protocol_data: { parameters: { offer } }
-    } = listing;
-    
-    const tokenId = offer[0].identifierOrCriteria;
-    const priceInEth = (parseInt(value) / 1e18).toFixed(3);
-    const osUrl = `https://opensea.io/assets/ethereum/${contract_address}/${tokenId}`;
-    const imageUrl = `https://ipfs.io/ipfs/QmbuBFTZe5ygELZhRtQkpM3NW8nVXxRUNK9W2XFbAXtPLV/${tokenId}.png`;
+    const itemsPerPage = 10;
+    const start = (page - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    const pageListings = listings.slice(start, end);
 
     const embed = new MessageEmbed()
-        .setTitle(`Floor Listing #${page}`)
-        .setDescription(`V1 Punk #${tokenId}`)
-        .addFields({
-            name: 'Price',
-            value: `${priceInEth} ${currency}`,
-            inline: true
-        }, {
-            name: 'Links',
-            value: `[View on OpenSea](${osUrl})`,
-            inline: true
-        })
-        .setThumbnail(imageUrl)
-        .setFooter({ text: `Listing ${page} of ${listings.length}` })
+        .setTitle('V1 Punks Floor Listings')
+        .setDescription(`Showing listings ${start + 1}-${end} of ${listings.length}`)
         .setTimestamp();
+
+    pageListings.forEach((listing, index) => {
+        const { 
+            price: { current: { value, currency } },
+            protocol_data: { parameters: { offer } }
+        } = listing;
+        
+        const tokenId = offer[0].identifierOrCriteria;
+        const priceInEth = (parseInt(value) / 1e18).toFixed(3);
+        const osUrl = `https://opensea.io/assets/ethereum/${contract_address}/${tokenId}`;
+        
+        embed.addFields({
+            name: `${index + start + 1}. V1 Punk #${tokenId}`,
+            value: `${priceInEth} ${currency}\n` +
+            `[View on OpenSea](${osUrl})`,
+            inline: false
+        });
+    });
 
     return embed;
 }
@@ -69,8 +70,8 @@ function createButtons(page, maxPage) {
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('floor')
-        .setDescription('Shows the 10 lowest priced V1 Punks on OpenSea'),
+        .setName('sniper')
+        .setDescription('Shows the top 100 floor listings for V1 Punks'),
 
     async execute(interaction) {
         await interaction.deferReply();
@@ -84,7 +85,7 @@ module.exports = {
             }
 
             const page = 1;
-            const maxPage = listings.length;
+            const maxPage = Math.ceil(listings.length / 5);
             const embed = createEmbed(listings, page);
             const row = createButtons(page, maxPage);
 
@@ -93,9 +94,10 @@ module.exports = {
                 components: [row]
             });
 
+            // Create collector for button interactions
             const collector = response.createMessageComponentCollector({
                 filter: i => i.user.id === interaction.user.id,
-                time: 60000
+                time: 60000 // 1 minute timeout
             });
 
             let currentPage = page;
@@ -117,6 +119,7 @@ module.exports = {
             });
 
             collector.on('end', () => {
+                // Remove buttons after timeout
                 interaction.editReply({
                     embeds: [embed],
                     components: []
