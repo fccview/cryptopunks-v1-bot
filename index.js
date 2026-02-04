@@ -3,8 +3,8 @@ const { Client, Collection, Intents } = require('discord.js');
 const { token } = require('./config.json');
 const core = require('./core/core');
 const { discord_general_chat } = require('./config.json');
-const { startSalesTracking } = require('./core/blockchainEvents');
 const { fetchSalesLogs, processSaleLog } = require('./core/osSales');
+const { fetchWrapLogs, processWrapLog } = require('./core/trackWrap');
 const client = new Client({
     partials: ['MESSAGE', 'CHANNEL', 'REACTION'],
     intents: ['DIRECT_MESSAGES', 'DIRECT_MESSAGE_REACTIONS', 'GUILD_MESSAGES', 'GUILD_MESSAGE_REACTIONS', 'GUILDS']
@@ -22,7 +22,6 @@ for (const file of commandFiles) {
 client.once('ready', async () => {
     console.log('Ready!');
     client.user.setPresence({ activities: [{ name: `Type /help`, type: `PLAYING` }] });
-    startSalesTracking(client);
 
     /**
      * Security protocol alert for users, every 8 hours
@@ -32,7 +31,7 @@ client.once('ready', async () => {
     }, 28800000);
 
     /**
-     * Fetch sales logs every 5 minutes
+     * Fetch sales/wrap logs every 5 minutes
      */
     setInterval(async () => {
         try {
@@ -42,6 +41,15 @@ client.once('ready', async () => {
             }
         } catch (error) {
             console.error('Error in polling sales:', error);
+        }
+
+        try {
+            const logs = await fetchWrapLogs();
+            for (const log of logs) {
+                await processWrapLog(log, client);
+            }
+        } catch (error) {
+            console.error('Error in polling wraps:', error);
         }
     }, 100000);
 });

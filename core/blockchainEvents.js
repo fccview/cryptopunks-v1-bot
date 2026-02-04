@@ -1,7 +1,7 @@
 const axios = require('axios');
 const Discord = require('discord.js');
 const ethers = require('ethers');
-const { contract_address, alchemy_api_key, discord_general_chat, discord_wraps_channel, discord_sales_channel } = require('../config.json');
+const { contract_address, alchemy_api_key, discord_general_chat, discord_sales_channel } = require('../config.json');
 /** Set the Discord channel ID here for debugging. */
 // const discord_general_chat = `932316690816073729`;
 // const discord_wraps_channel = `932316690816073729`;
@@ -36,22 +36,6 @@ const provider = new ethers.providers.JsonRpcProvider(ALCHEMY_API_URL);
 const publicProvider = new ethers.providers.JsonRpcProvider('https://eth.public-rpc.com');
 
 async function startSalesTracking(client) {
-    /**
-     * Debug block for processing recent transactions. Uncomment for testing.
-     */
-    /*
-    try {
-        console.log('Fetching recent sales...');
-        const recentLogs = await fetchRecentSales();
-        console.log(`Processing ${recentLogs.length} recent transfer events...`);
-
-        for (const log of recentLogs) {
-            await processSaleLog(log, client);
-        }
-    } catch (error) {
-        console.error('Error fetching recent sales:', error);
-    }
-    */
 
     let lastCheckedBlock = await getCurrentBlockNumber();
     console.log(`Starting regular polling from block ${lastCheckedBlock}`);
@@ -69,40 +53,6 @@ async function startSalesTracking(client) {
     }, 60000);
 }
 
-/**
- * Debug function for processing recent transactions. Uncomment for testing.
- */
-/*
-async function fetchRecentSales() {
-    const currentBlock = await getCurrentBlockNumber();
-    const blockRange = 50000;
-
-    const response = await axios.post(ALCHEMY_API_URL, {
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'eth_getLogs',
-        params: [{
-            fromBlock: ethers.utils.hexValue(currentBlock - blockRange),
-            toBlock: 'latest',
-            address: contract_address,
-            topics: [TRANSFER_EVENT_TOPIC]
-        }]
-    });
-
-    const logs = response.data.result;
-    console.log(`Found ${logs.length} total events`);
-
-    // Get the last 10 events
-    const recentLogs = logs.slice(-50);
-    console.log(`Processing last ${recentLogs.length} events:`);
-    recentLogs.forEach(log => {
-        console.log(`- Transaction hash: ${log.transactionHash}`);
-    });
-
-    return recentLogs;
-}
-*/
-
 async function processSaleLog(log, client) {
     const { topics, transactionHash, address } = log;
 
@@ -118,27 +68,9 @@ async function processSaleLog(log, client) {
         processedTxs.add(transactionHash);
         try {
             const channel = await client.channels.fetch(discord_general_chat);
-            const wrapsChannel = await client.channels.fetch(discord_wraps_channel);
             const salesChannel = await client.channels.fetch(discord_sales_channel);
 
             if (from === '0x0000000000000000000000000000000000000000') {
-                const embed = new Discord.MessageEmbed()
-                    .setColor('#00ff00')
-                    .setTitle(`Punk #${tokenId} was just wrapped!!`)
-                    .addFields(
-                        { name: 'Token ID', value: tokenId, inline: true },
-                        { name: 'Owner', value: `${to.slice(0, 4)}...${to.slice(-4)}`, inline: true },
-                        { name: 'Transaction', value: `[View on Etherscan](https://etherscan.io/tx/${transactionHash})` }
-                    )
-                    .setThumbnail(`https://ipfs.io/ipfs/QmbuBFTZe5ygELZhRtQkpM3NW8nVXxRUNK9W2XFbAXtPLV/${tokenId}.png`)
-                    .setTimestamp();
-
-                try {
-                    await channel.send({ embeds: [embed] });
-                    await wrapsChannel.send({ embeds: [embed] });
-                } catch (error) {
-                    console.error(error.stack);
-                }
                 return;
             }
 
