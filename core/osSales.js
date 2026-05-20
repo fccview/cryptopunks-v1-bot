@@ -3,10 +3,19 @@ const axios = require('axios');
 const ethers = require('ethers');
 
 const OPENSEA_API_URL = 'https://api.opensea.io/api/v2/events/collection/official-v1-punks';
-const { opensea_api_key, discord_general_chat, discord_sales_channel, alchemy_api_key } = require('../config.json');
+const {
+    opensea_api_key,
+    discord_general_chat,
+    discord_sales_channel,
+    alchemy_api_key,
+    is_test,
+    test_channel,
+} = require('../config.json');
+
+const OS_TEST_LOOKBACK_SEC = 3 * 3600;
 
 const fetchSalesLogs = async () => {
-    let seconds = 100000 ? parseInt(100000) / 1000 : 3600;
+    let seconds = is_test ? OS_TEST_LOOKBACK_SEC : (100000 ? parseInt(100000) / 1000 : 3600);
     let afterTimestamp = Math.round(new Date().getTime() / 1000) - seconds;
 
     const response = await axios.get(OPENSEA_API_URL, {
@@ -22,12 +31,12 @@ const fetchSalesLogs = async () => {
 };
 
 const processSaleLog = async (event, client) => {
-    const channel = await client.channels.fetch(discord_general_chat);
-    const salesChannel = await client.channels.fetch(discord_sales_channel);
-    /** 
-     * @todo enable this when you need to test
-     */
-    // const testChannel = await client.channels.fetch(`932316690816073729`);
+    const channel = is_test
+        ? await client.channels.fetch(test_channel)
+        : await client.channels.fetch(discord_general_chat);
+    const salesChannel = is_test
+        ? null
+        : await client.channels.fetch(discord_sales_channel);
 
     if (!channel) {
         console.error('Channel not found.');
@@ -82,11 +91,9 @@ const processSaleLog = async (event, client) => {
 
     try {
         await channel.send({ embeds: [embed], components: [row] });
-        await salesChannel.send({ embeds: [embed], components: [row] });
-        /** 
-         * @todo enable this when you need to test
-         */
-        // await testChannel.send({ embeds: [embed], components: [row] });
+        if (salesChannel) {
+            await salesChannel.send({ embeds: [embed], components: [row] });
+        }
     } catch (error) {
         console.error(error.stack);
     }

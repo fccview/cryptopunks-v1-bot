@@ -2,8 +2,9 @@ const fs = require('node:fs');
 const { Client, Collection, Intents } = require('discord.js');
 const { token } = require('./config.json');
 const core = require('./core/core');
-const { discord_general_chat } = require('./config.json');
+const { discord_general_chat, is_test } = require('./config.json');
 const { fetchSalesLogs, processSaleLog } = require('./core/osSales');
+const { fetchNewSales, postSale } = require('./core/indexerSales');
 const { fetchWrapLogs, processWrapLog } = require('./core/trackWrap');
 const client = new Client({
     partials: ['MESSAGE', 'CHANNEL', 'REACTION'],
@@ -30,10 +31,7 @@ client.once('ready', async () => {
         core.safetyProtocol(client, discord_general_chat);
     }, 28800000);
 
-    /**
-     * Fetch sales/wrap logs every 5 minutes
-     */
-    setInterval(async () => {
+    const pollAll = async () => {
         try {
             const logs = await fetchSalesLogs();
             for (const log of logs) {
@@ -44,6 +42,15 @@ client.once('ready', async () => {
         }
 
         try {
+            const indexerSales = await fetchNewSales();
+            for (const sale of indexerSales) {
+                await postSale(sale, client);
+            }
+        } catch (error) {
+            console.error('Error in polling indexer sales:', error);
+        }
+
+        try {
             const logs = await fetchWrapLogs();
             for (const log of logs) {
                 await processWrapLog(log, client);
@@ -51,7 +58,12 @@ client.once('ready', async () => {
         } catch (error) {
             console.error('Error in polling wraps:', error);
         }
-    }, 100000);
+    };
+
+    if (is_test) {
+        pollAll();
+    }
+    setInterval(pollAll, 100000);
 });
 
 client.on('interactionCreate', async interaction => {

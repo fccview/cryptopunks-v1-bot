@@ -30,9 +30,23 @@ ETH: 0xfe89834C92C399E720F457bB73fEa1EFe1D0e17D
   "rarible_api_key": "RARIBLE_API_KEY_HERE",
   "discord_general_chat": "DISCORD_GENERAL_CHAT_CHANNEL_ID_HERE",
   "discord_wraps_channel": "DISCORD_WRAPS_CHANNEL_ID_HERE",
-  "discord_sales_channel": "DISCORD_SALES_CHANNEL_ID_HERE"
+  "discord_sales_channel": "DISCORD_SALES_CHANNEL_ID_HERE",
+  "indexer_url": "https://indexer.punksmarket.app",
+  "is_test": false,
+  "test_channel": "TEST_DISCORD_CHANNEL_ID_HERE",
+  "test_lookback_hours": 5
 }
 ```
+
+### Test mode
+
+Set `is_test: true` to verify the sales pipelines without affecting production channels:
+
+- All sale posts (OpenSea + Punks Market indexer) are routed to `test_channel` only.
+- Both pollers backfill from `test_lookback_hours` ago (default 5) on the first cycle, so recent sales surface immediately instead of waiting for new ones.
+- Flip back to `is_test: false` for normal behavior. Posts then go to `discord_general_chat` + `discord_sales_channel`, and the lookback window collapses to the regular `sales_cooldown` (~100s).
+
+Note: in test mode the OpenSea path will re-post the same sales every poll cycle (no tx dedupe there yet) - run a single cycle then disable, or ask for tx-hash dedupe on the OpenSea side.
 
 2. Initialize the project (`yarn`)
 3. Install forever (`yarn add forever`)
@@ -50,3 +64,4 @@ _No matter how small or big the contribution is, your name/twitter handle will b
 
 - [fccview](https://x.com/fccview)
 - [DeMemeTree](https://x.com/dmt_eth)
+- [jwahdatehagh](https://github.com/jwahdatehagh) (Punks Market indexer API)

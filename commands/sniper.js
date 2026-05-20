@@ -1,134 +1,87 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageEmbed, MessageActionRow, MessageButton } = require('discord.js');
-const axios = require('axios');
-const { opensea_api_key, contract_address } = require('../config.json');
+const { getMergedFloor, tokenLinks } = require('../core/floorMerge');
 
-async function getFloorListings() {
-    const url = 'https://api.opensea.io/api/v2/listings/collection/official-v1-punks/best';
-    
-    const response = await axios.get(url, {
-        headers: {
-            'X-API-KEY': opensea_api_key
-        },
-        params: {
-            include_private_listings: false,
-            limit: 100
-        }
-    });
-    
-    return response.data.listings;
-}
+const ITEMS_PER_PAGE = 5;
+const SNIPER_LIMIT = 100;
 
-function createEmbed(listings, page) {
-    const itemsPerPage = 5;
-    const start = (page - 1) * itemsPerPage;
-    const end = start + itemsPerPage;
-    const pageListings = listings.slice(start, end);
+const buildEmbed = (listings, page) => {
+    const start = (page - 1) * ITEMS_PER_PAGE;
+    const end = Math.min(start + ITEMS_PER_PAGE, listings.length);
+    const slice = listings.slice(start, end);
 
     const embed = new MessageEmbed()
         .setTitle('V1 Punks Floor Listings')
-        .setDescription(`Showing listings ${start + 1}-${end} of ${listings.length}`)
+        .setDescription(`Showing listings ${start + 1}-${end} of ${listings.length} (OpenSea + Punks Market)`)
         .setTimestamp();
 
-    pageListings.forEach((listing, index) => {
-        const { 
-            price: { current: { value, currency } },
-            protocol_data: { parameters: { offer } }
-        } = listing;
-        
-        const tokenId = offer[0].identifierOrCriteria;
-        const priceInEth = (parseInt(value) / 1e18).toFixed(3);
-        const osUrl = `https://opensea.io/assets/ethereum/${contract_address}/${tokenId}`;
-        
+    slice.forEach((listing, index) => {
+        const { tokenId, priceEth, marketplace } = listing;
+        const links = tokenLinks(tokenId, marketplace);
+        const priceStr = priceEth.toFixed(3);
         embed.addFields({
-            name: `${index + start + 1}. V1 Punk #${tokenId}`,
-            value: `${priceInEth} ${currency}\n` +
-            `[View on OpenSea](${osUrl})`,
-            inline: false
+            name: `${start + index + 1}. V1 Punk #${tokenId} - ${marketplace}`,
+            value: `${priceStr} ETH\n[OpenSea](${links.opensea}) | [Punks Market](${links.punksMarket})`,
+            inline: false,
         });
     });
 
     return embed;
-}
+};
 
-function createButtons(page, maxPage) {
-    const row = new MessageActionRow()
-        .addComponents(
-            new MessageButton()
-                .setCustomId('prev')
-                .setLabel('Previous')
-                .setStyle('PRIMARY')
-                .setDisabled(page === 1),
-            new MessageButton()
-                .setCustomId('next')
-                .setLabel('Next')
-                .setStyle('PRIMARY')
-                .setDisabled(page === maxPage)
-        );
-    return row;
-}
+const buildButtons = (page, maxPage) => new MessageActionRow().addComponents(
+    new MessageButton()
+        .setCustomId('prev')
+        .setLabel('Previous')
+        .setStyle('PRIMARY')
+        .setDisabled(page === 1),
+    new MessageButton()
+        .setCustomId('next')
+        .setLabel('Next')
+        .setStyle('PRIMARY')
+        .setDisabled(page === maxPage),
+);
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('sniper')
-        .setDescription('Shows the top 100 floor listings for V1 Punks'),
+        .setDescription('Top 100 cheapest V1 Punks across OpenSea and Punks Market'),
 
     async execute(interaction) {
         await interaction.deferReply();
-
         try {
-            const listings = await getFloorListings();
-            
-            if (!listings || listings.length === 0) {
+            const listings = await getMergedFloor(SNIPER_LIMIT);
+            if (!listings.length) {
                 await interaction.editReply('No floor listings found.');
                 return;
             }
 
-            const page = 1;
-            const maxPage = Math.ceil(listings.length / 5);
-            const embed = createEmbed(listings, page);
-            const row = createButtons(page, maxPage);
-
+            let page = 1;
+            const maxPage = Math.max(1, Math.ceil(listings.length / ITEMS_PER_PAGE));
             const response = await interaction.editReply({
-                embeds: [embed],
-                components: [row]
+                embeds: [buildEmbed(listings, page)],
+                components: [buildButtons(page, maxPage)],
             });
 
-            // Create collector for button interactions
             const collector = response.createMessageComponentCollector({
-                filter: i => i.user.id === interaction.user.id,
-                time: 60000 // 1 minute timeout
+                filter: (i) => i.user.id === interaction.user.id,
+                time: 60000,
             });
 
-            let currentPage = page;
-
-            collector.on('collect', async i => {
-                if (i.customId === 'prev') {
-                    currentPage--;
-                } else if (i.customId === 'next') {
-                    currentPage++;
-                }
-
-                const newEmbed = createEmbed(listings, currentPage);
-                const newRow = createButtons(currentPage, maxPage);
-
+            collector.on('collect', async (i) => {
+                page = i.customId === 'next' ? page + 1 : page - 1;
                 await i.update({
-                    embeds: [newEmbed],
-                    components: [newRow]
+                    embeds: [buildEmbed(listings, page)],
+                    components: [buildButtons(page, maxPage)],
                 });
             });
 
             collector.on('end', () => {
-                // Remove buttons after timeout
-                interaction.editReply({
-                    embeds: [embed],
-                    components: []
-                }).catch(console.error);
+                interaction.editReply({ components: [] }).catch((err) => console.error('Sniper cleanup failed:', err));
             });
-
         } catch (error) {
-            console.error('Error fetching floor listings:', error);
+            console.error('Error fetching sniper listings:', error);
             await interaction.editReply('Error fetching floor listings. Please try again later.');
         }
-    }
-}; 
+    },
+};
